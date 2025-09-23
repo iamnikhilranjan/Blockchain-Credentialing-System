@@ -1,12 +1,55 @@
-# React + Vite
+# Certificate Verification Platform – Frontend  
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the **frontend for a blockchain-based certificate verification platform**, built using **React, Vite, TypeScript, Tailwind CSS, Bootstrap, and shadcn-ui**.  
 
-Currently, two official plugins are available:
+It provides a responsive user interface for:  
+- Learners and verifiers to **verify certificates**  
+- Institutions to **upload certificates** (secured with blockchain wallet login)  
+- Admins to **manage institutions** by registering their wallet public keys  
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## 🚀 Features  
+- **Home Page** with hero banner, slogan, platform details, and a verify button  
+- **Verify Page** for certificate validation via QR code or manual input  
+- **Upload Page** for authorized issuers to generate and upload certificates on-chain  
+- **Admin Page** for managing institution wallet keys (only registered institutions can upload)  
+- Responsive UI with modern components and consistent theme  
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 🛠️ Getting Started  
+
+### 1. Clone the Repository  
+
+git clone <YOUR_GIT_URL>
+cd certificate-verification-frontend
+
+
+### 2. Install Dependencies  
+
+npm install
+
+
+### 3. Run Development Server  
+
+npm run dev
+
+
+### 4. Build for Production  
+
+npm run build
+
+
+
+---
+
+## ⚡ Technologies Used  
+- **React (with Vite)** – Frontend framework  
+- **TypeScript** – Type-safe development  
+- **Tailwind CSS** – Utility-first styling  
+- **Bootstrap** – UI components and layout  
+- **shadcn-ui** – Modern styled components  
+
+---
+ 
