@@ -56,13 +56,33 @@ export const TrustArchitecture: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-accent/5 rounded-xl border border-accent/20">
+            <div className="mt-8 flex flex-col items-center">
+              <div className="w-full max-w-2xl rounded-xl overflow-hidden shadow-lg border border-accent/20 bg-background">
+                <div className="aspect-w-16 aspect-h-9">
+                  <iframe
+                    src="https://www.youtube.com/embed/lxMeQc8yjxI"
+                    title="Website Prototype Overview"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-64 md:h-96"
+                  />
+                </div>
+                <div className="p-4 text-center">
+                  <h5 className="font-semibold text-base md:text-lg mb-2">Website Prototype Overview</h5>
+                  <p className="text-sm text-muted-foreground">
+                    For Admin or Institutional access, kindly Contact Us - <span className="font-medium text-accent">rahulkumarmahto334@gmail.com</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* <div className="mt-6 p-4 bg-accent/5 rounded-xl border border-accent/20">
               <p className="text-sm text-muted-foreground">
                 <strong className="text-accent">Smart Permissions:</strong> Each role has tailored functionality,
                 blockchain permissions, and interface elements that match their specific responsibilities
                 within the decentralized credentialing ecosystem.
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
         {/* Three-Level Authority Structure */}
