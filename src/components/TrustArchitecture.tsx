@@ -70,7 +70,7 @@ export const TrustArchitecture: React.FC = () => {
                 <div className="p-4 text-center">
                   <h5 className="font-semibold text-base md:text-lg mb-2">Website Prototype Overview</h5>
                   <p className="text-sm text-muted-foreground">
-                    For Admin or Institutional access, kindly Contact Us - <span className="font-medium text-accent">rahulkumarmahto334@gmail.com</span>
+                    For Institutional access, kindly Contact Us - <span className="font-medium text-accent">rahulkumarmahto334@gmail.com</span>
                   </p>
                 </div>
               </div>
