@@ -29,6 +29,7 @@ export default function Verify() {
   }>({});
   const html5QrCodeRef = useRef<any>(null);
   const fetchingDetailsRef = useRef<boolean>(false);
+  const scanProcessingRef = useRef<boolean>(false);
 
   // Aadhaar verification states
   const [aadhaarInput, setAadhaarInput] = useState("");
@@ -419,6 +420,7 @@ export default function Verify() {
       scannerRef.current.innerHTML = '';
       scannerRef.current.appendChild(el);
       setIsScanning(true);
+      scanProcessingRef.current = false; // Reset processing flag
 
       const html5QrCode = new Html5Qrcode(scannerId);
       html5QrCodeRef.current = html5QrCode;
@@ -430,24 +432,33 @@ export default function Verify() {
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0
         },
-        (decodedText: string) => {
-          // Stop scanning on success
-          stopCamera();
+        async (decodedText: string) => {
+          // Prevent multiple callbacks for the same scan
+          if (scanProcessingRef.current) return;
+          scanProcessingRef.current = true;
+
+          console.log('QR Code detected:', decodedText);
+
+          // Stop scanning immediately on success
+          await stopCamera();
+
           // Expect link like /verify?certId=123
           try {
             const url = new URL(decodedText, window.location.origin);
             const id = url.searchParams.get('certId') || decodedText;
             setCertificateId(id);
-            handleVerify(id, true); // Pass isQRScan: true
-            // Don't open new tab - just verify in current tab
+            await handleVerify(id, true); // Pass isQRScan: true
           } catch (_) {
             setCertificateId(decodedText);
-            handleVerify(decodedText, true); // Pass isQRScan: true
+            await handleVerify(decodedText, true); // Pass isQRScan: true
+          } finally {
+            // We don't reset scanProcessingRef here because we want to stop scanning until user explicitly starts again
+            // It will be reset when handleQRScan is called again
           }
         },
         (errorMessage: string) => {
           // Handle scan errors silently (this is called frequently during scanning)
-          console.debug('QR scan error:', errorMessage);
+          // console.debug('QR scan error:', errorMessage);
         }
       );
     } catch (e: any) {
@@ -857,15 +868,16 @@ export default function Verify() {
                         Scan Another Certificate
                       </Button>
                     </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+                  </div >
+                </div >
+              )
+              }
+            </CardContent >
+          </Card >
+        </div >
+      </main >
 
       <Footer />
-    </div>
+    </div >
   );
 }
