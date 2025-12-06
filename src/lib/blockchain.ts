@@ -319,9 +319,10 @@ class BlockchainService {
       if (!this.state.provider) {
         // Prioritize RPC URL for consistent read-only access (verification)
         // Only use window.ethereum if explicit wallet connection is requested (handled in connectWallet) or RPC is missing
-        if (RPC_URL) {
-          console.log('Using RPC URL for provider:', RPC_URL);
-          this.state.provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+        const rpcUrl = RPC_URL || 'https://ethereum-sepolia.publicnode.com';
+        if (rpcUrl) {
+          console.log('Using RPC URL for provider:', rpcUrl);
+          this.state.provider = new ethers.providers.JsonRpcProvider(rpcUrl);
           // If purely using RPC, we're not "connected" in terms of wallet, but we are connected to network
         } else if (typeof (window as any)?.ethereum !== 'undefined') {
           this.state.provider = new ethers.providers.Web3Provider((window as any).ethereum);
