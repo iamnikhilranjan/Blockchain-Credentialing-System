@@ -31,6 +31,11 @@ export default function Verify() {
   const fetchingDetailsRef = useRef<boolean>(false);
   const scanProcessingRef = useRef<boolean>(false);
 
+  // Aadhaar verification states
+  const [aadhaarInput, setAadhaarInput] = useState("");
+  const [aadhaarVerificationResult, setAadhaarVerificationResult] = useState<"verified" | "unverified" | null>(null);
+  const [aadhaarVerifying, setAadhaarVerifying] = useState(false);
+
   // Cleanup function to properly stop the camera
   const stopCamera = async () => {
     if (html5QrCodeRef.current && isScanning) {
@@ -306,6 +311,89 @@ export default function Verify() {
       setIsLoading(false);
     }
   };
+
+  const handleAadhaarVerify = async () => {
+    // Validate Aadhaar input
+    if (!aadhaarInput.trim()) {
+      toast({
+        title: "Aadhaar Required",
+        description: "Please enter the Aadhaar number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate Aadhaar format (12 digits)
+    if (!/^\d{12}$/.test(aadhaarInput.trim())) {
+      toast({
+        title: "Invalid Aadhaar",
+        description: "Please enter a valid 12-digit Aadhaar number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if we have a learner ID from verification result
+    if (!verificationResult?.learnerId) {
+      toast({
+        title: "No Learner ID",
+        description: "Please verify a certificate first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAadhaarVerifying(true);
+    setAadhaarVerificationResult(null);
+
+    try {
+      console.log('=== AADHAAR VERIFICATION START ===');
+      console.log('Aadhaar input:', aadhaarInput);
+      console.log('Learner ID:', verificationResult.learnerId);
+
+      // Hash the Aadhaar number using the same algorithm as during registration
+      const aadhaarHash = blockchainService.createHash(aadhaarInput.trim());
+      console.log('Calculated Aadhaar hash:', aadhaarHash);
+
+      // Fetch learner details from blockchain
+      const learnerDetails = await blockchainService.getLearnerById(parseInt(verificationResult.learnerId));
+
+      if (!learnerDetails) {
+        throw new Error('Learner details not found on blockchain');
+      }
+
+      console.log('Learner identity hash from blockchain:', learnerDetails.identityHash);
+      console.log('Hash match:', aadhaarHash === learnerDetails.identityHash);
+      console.log('=== AADHAAR VERIFICATION END ===');
+
+      // Compare the hashes
+      if (aadhaarHash === learnerDetails.identityHash) {
+        setAadhaarVerificationResult("verified");
+        toast({
+          title: "Aadhaar Verified ✅",
+          description: "The Aadhaar number matches the certificate holder's identity",
+        });
+      } else {
+        setAadhaarVerificationResult("unverified");
+        toast({
+          title: "Aadhaar Unverified ❌",
+          description: "The Aadhaar number does not match the certificate holder's identity",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verifying Aadhaar:', error);
+      toast({
+        title: "Verification Error",
+        description: error.message || "An error occurred while verifying Aadhaar",
+        variant: "destructive",
+      });
+      setAadhaarVerificationResult(null);
+    } finally {
+      setAadhaarVerifying(false);
+    }
+  };
+
 
   const handleQRScan = async () => {
     try {
@@ -679,6 +767,85 @@ export default function Verify() {
                       </CardContent>
                     </Card>
 
+                    {/* Aadhaar Verification Section - Only show for authentic or revoked certificates */}
+                    {(verificationResult.status === "authentic" || verificationResult.status === "revoked") && (
+                      <Card className="bg-background/50 border-accent/20 mt-4">
+                        <CardHeader>
+                          <CardTitle className="font-heading text-lg">Verify Aadhaar Identity</CardTitle>
+                          <CardDescription>
+                            Enter the Aadhaar number to verify the certificate holder's identity
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="aadhaarInput">Aadhaar Number</Label>
+                            <Input
+                              id="aadhaarInput"
+                              placeholder="Enter 12-digit Aadhaar number"
+                              value={aadhaarInput}
+                              onChange={(e) => setAadhaarInput(e.target.value)}
+                              className="bg-background/50"
+                              maxLength={12}
+                              disabled={aadhaarVerifying}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              The Aadhaar number will be hashed and compared with the blockchain record
+                            </p>
+                          </div>
+
+                          <Button
+                            variant="hero"
+                            onClick={handleAadhaarVerify}
+                            disabled={aadhaarVerifying || !aadhaarInput.trim()}
+                            className="w-full"
+                          >
+                            {aadhaarVerifying ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Verifying Aadhaar...
+                              </>
+                            ) : (
+                              'Verify Aadhaar'
+                            )}
+                          </Button>
+
+                          {/* Aadhaar Verification Result */}
+                          {aadhaarVerificationResult && (
+                            <div className="mt-4 p-4 rounded-lg border animate-in fade-in slide-in-from-bottom-2"
+                              style={{
+                                backgroundColor: aadhaarVerificationResult === "verified" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
+                                borderColor: aadhaarVerificationResult === "verified" ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"
+                              }}
+                            >
+                              <div className="flex items-center gap-3">
+                                {aadhaarVerificationResult === "verified" ? (
+                                  <>
+                                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                    <div>
+                                      <h4 className="font-semibold text-green-700">Aadhaar Verified</h4>
+                                      <p className="text-sm text-green-600">
+                                        The Aadhaar number matches the certificate holder's identity
+                                      </p>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="h-6 w-6 text-red-600" />
+                                    <div>
+                                      <h4 className="font-semibold text-red-700">Aadhaar Unverified</h4>
+                                      <p className="text-sm text-red-600">
+                                        The Aadhaar number does not match the certificate holder's identity
+                                      </p>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Scan Another Button */}
                     <div className="flex justify-center pt-2">
                       <Button
@@ -691,6 +858,9 @@ export default function Verify() {
                           setFetchedDetails({});
                           setVerificationKey(prev => prev + 1);
                           fetchingDetailsRef.current = false;
+                          // Reset Aadhaar verification state
+                          setAadhaarInput("");
+                          setAadhaarVerificationResult(null);
                         }}
                         className="gap-2"
                       >
@@ -698,15 +868,16 @@ export default function Verify() {
                         Scan Another Certificate
                       </Button>
                     </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+                  </div >
+                </div >
+              )
+              }
+            </CardContent >
+          </Card >
+        </div >
+      </main >
 
       <Footer />
-    </div>
+    </div >
   );
 }
