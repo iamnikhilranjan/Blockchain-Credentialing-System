@@ -37,21 +37,44 @@ export default function Verify() {
   const [aadhaarVerifying, setAadhaarVerifying] = useState(false);
 
   // Cleanup function to properly stop the camera
-  const stopCamera = async () => {
-    if (html5QrCodeRef.current && isScanning) {
+  const stopCamera = useCallback(async () => {
+    console.log('stopCamera called, isScanning:', isScanning, 'html5QrCodeRef.current:', !!html5QrCodeRef.current);
+
+    if (html5QrCodeRef.current) {
       try {
+        // Try to stop the scanner - it will throw if not running, which is fine
         await html5QrCodeRef.current.stop();
-        await html5QrCodeRef.current.clear();
-        html5QrCodeRef.current = null;
-      } catch (error) {
-        console.warn('Error stopping camera:', error);
+        console.log('Scanner stopped successfully');
+      } catch (error: any) {
+        // Ignore errors about scanner not running
+        if (!error?.message?.includes('not started')) {
+          console.warn('Error stopping camera:', error);
+        }
       }
+
+      try {
+        // Always clear the scanner UI
+        await html5QrCodeRef.current.clear();
+        console.log('Scanner cleared successfully');
+      } catch (error) {
+        console.warn('Error clearing scanner:', error);
+      }
+
+      // Always nullify the reference
+      html5QrCodeRef.current = null;
     }
+
+    // Reset all state flags
     setIsScanning(false);
+    scanProcessingRef.current = false;
+
+    // Clear the scanner container
     if (scannerRef.current) {
       scannerRef.current.innerHTML = '';
     }
-  };
+
+    console.log('stopCamera completed');
+  }, [isScanning]);
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -434,13 +457,24 @@ export default function Verify() {
         },
         async (decodedText: string) => {
           // Prevent multiple callbacks for the same scan
-          if (scanProcessingRef.current) return;
+          if (scanProcessingRef.current) {
+            console.log('Scan already processing, ignoring...');
+            return;
+          }
           scanProcessingRef.current = true;
 
           console.log('QR Code detected:', decodedText);
 
-          // Stop scanning immediately on success
-          await stopCamera();
+          // Stop the scanner immediately to prevent multiple scans
+          try {
+            if (html5QrCodeRef.current) {
+              await html5QrCodeRef.current.stop();
+              setIsScanning(false);
+              console.log('Scanner stopped after QR detection');
+            }
+          } catch (error) {
+            console.warn('Error stopping scanner after detection:', error);
+          }
 
           // Expect link like /verify?certId=123
           try {
@@ -451,10 +485,9 @@ export default function Verify() {
           } catch (_) {
             setCertificateId(decodedText);
             await handleVerify(decodedText, true); // Pass isQRScan: true
-          } finally {
-            // We don't reset scanProcessingRef here because we want to stop scanning until user explicitly starts again
-            // It will be reset when handleQRScan is called again
           }
+
+          // Note: scanProcessingRef will be reset when user clicks "Scan Another" or starts a new scan
         },
         (errorMessage: string) => {
           // Handle scan errors silently (this is called frequently during scanning)
@@ -858,6 +891,7 @@ export default function Verify() {
                           setFetchedDetails({});
                           setVerificationKey(prev => prev + 1);
                           fetchingDetailsRef.current = false;
+                          scanProcessingRef.current = false; // Reset scan processing flag
                           // Reset Aadhaar verification state
                           setAadhaarInput("");
                           setAadhaarVerificationResult(null);
