@@ -16,6 +16,7 @@ export const Navigation = () => {
     const baseItems = [
       { name: "Home", path: "/" },
       { name: "Verify Certificate", path: "/verify" },
+      { name: "FAQ", path: "/#faq" },
     ];
 
     if (isConnected) {
@@ -43,6 +44,16 @@ export const Navigation = () => {
   const navItems = getNavItems();
   const isActive = (path: string) => location.pathname === path;
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    if (path === "/#faq") {
+      e.preventDefault();
+      const faqSection = document.getElementById("faq");
+      if (faqSection) {
+        faqSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
@@ -64,6 +75,7 @@ export const Navigation = () => {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={(e) => handleNavClick(e, item.path)}
                 className={cn(
                   "text-sm font-medium transition-all duration-200 relative group",
                   isActive(item.path)
@@ -101,7 +113,10 @@ export const Navigation = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  handleNavClick(e, item.path);
+                  setIsOpen(false);
+                }}
                 className={cn(
                   "block py-2 px-4 rounded-lg transition-all",
                   isActive(item.path)
