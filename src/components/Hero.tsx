@@ -11,7 +11,7 @@ export const Hero = () => {
       {/* Background */}
       <div className="absolute inset-0 blockchain-grid opacity-30" />
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-primary/20" />
-      <div 
+      <div
         className="absolute inset-0 opacity-10"
         style={{
           backgroundImage: `url(${heroImage})`,
@@ -19,7 +19,7 @@ export const Hero = () => {
           backgroundPosition: 'center',
         }}
       />
-      
+
       {/* Floating orbs */}
       <div className="absolute top-20 left-10 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-float" />
       <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
@@ -59,18 +59,18 @@ export const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button 
-              variant="hero" 
-              size="lg" 
+            <Button
+              variant="hero"
+              size="lg"
               className="text-lg px-8 py-6 h-auto"
               onClick={() => navigate('/verify')}
             >
               Verify Certificate
               <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
-            <Button 
-              variant="outline" 
-              size="lg" 
+            <Button
+              variant="outline"
+              size="lg"
               className="text-lg px-8 py-6 h-auto border-accent/30 hover:border-accent hover:bg-accent/5"
               onClick={() => {
                 // Scroll to the next section (TrustArchitecture)

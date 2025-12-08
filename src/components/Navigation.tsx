@@ -5,6 +5,7 @@ import { Menu, X, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WalletConnection } from "@/components/WalletConnection";
 import { useBlockchain } from "@/contexts/BlockchainContext";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -92,8 +93,9 @@ export const Navigation = () => {
             ))}
           </div>
 
-          {/* Wallet Connection */}
-          <div className="hidden md:block">
+          {/* Wallet Connection & Theme Toggle */}
+          <div className="hidden md:flex items-center gap-4">
+            <ModeToggle />
             <WalletConnection showDetails={false} />
           </div>
 
