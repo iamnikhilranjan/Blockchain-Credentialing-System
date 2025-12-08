@@ -8,6 +8,54 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 158 100% 35%;
+    /* Slightly darker green for light mode contrast */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 158 100% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 158 100% 35%;
+
+    --radius: 0.75rem;
+
+    /* Light mode gradients - lighter variants */
+    --gradient-primary: linear-gradient(135deg, hsl(210 65% 95%), hsl(210 55% 90%));
+    --gradient-accent: linear-gradient(135deg, hsl(158 100% 40%), hsl(158 100% 35%));
+    /* Adjusted for visibility */
+    --gradient-glow: radial-gradient(circle at center, hsl(158 100% 40% / 0.15), transparent 70%);
+
+    --shadow-neon: 0 0 20px hsl(158 100% 40% / 0.2), 0 0 40px hsl(158 100% 40% / 0.1);
+    --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.1);
+    --shadow-subtle: 0 4px 15px rgba(0, 0, 0, 0.05);
+
+    --animation-glow: glow-light 2s ease-in-out infinite alternate;
+  }
+
+  .dark {
     --background: 210 65% 11%;
     --foreground: 0 0% 100%;
 
@@ -39,12 +87,10 @@ All colors MUST be HSL.
     --input: 210 40% 25%;
     --ring: 158 100% 50%;
 
-    --radius: 0.75rem;
-
     --gradient-primary: linear-gradient(135deg, hsl(210 65% 11%), hsl(210 55% 18%));
     --gradient-accent: linear-gradient(135deg, hsl(158 100% 50%), hsl(158 100% 40%));
     --gradient-glow: radial-gradient(circle at center, hsl(158 100% 50% / 0.15), transparent 70%);
-    
+
     --shadow-neon: 0 0 20px hsl(158 100% 50% / 0.3), 0 0 40px hsl(158 100% 50% / 0.2);
     --shadow-card: 0 8px 30px hsl(210 65% 5% / 0.5);
     --shadow-subtle: 0 4px 15px hsl(210 65% 5% / 0.3);
@@ -63,7 +109,12 @@ All colors MUST be HSL.
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-weight: 600;
   }
@@ -99,7 +150,7 @@ All colors MUST be HSL.
   }
 
   .blockchain-grid {
-    background-image: 
+    background-image:
       linear-gradient(hsl(158 100% 50% / 0.03) 1px, transparent 1px),
       linear-gradient(90deg, hsl(158 100% 50% / 0.03) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -110,24 +161,31 @@ All colors MUST be HSL.
   from {
     box-shadow: 0 0 10px hsl(158 100% 50% / 0.3), 0 0 20px hsl(158 100% 50% / 0.2);
   }
+
   to {
     box-shadow: 0 0 20px hsl(158 100% 50% / 0.5), 0 0 40px hsl(158 100% 50% / 0.3);
   }
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-20px);
   }
 }
 
 @keyframes pulse-slow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
