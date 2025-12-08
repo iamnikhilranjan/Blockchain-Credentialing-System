@@ -2,65 +2,120 @@ import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, Download, ExternalLink, Award } from "lucide-react";
+import { Download, ExternalLink, Award, QrCode } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { CertificateRenderer } from "@/components/CertificateRenderer";
 import { useBlockchain } from "@/contexts/BlockchainContext";
 import blockchainService from "@/lib/blockchain";
 import { useToast } from "@/hooks/use-toast";
+import { createRoot } from "react-dom/client";
 
 export default function Certificates() {
   const { address } = useBlockchain();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [certificates, setCertificates] = useState<Array<{ id: number; templateId: number; templateName?: string; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; txHash: string }>>([]);
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
+  const [certificates, setCertificates] = useState<Array<{ id: number; templateId: number; templateName?: string; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; dataHash?: string; txHash: string }>>([]);
 
-  const handleDownloadPdf = async (key: string) => {
+  const handleDownloadPdf = async (cert: typeof certificates[0]) => {
     try {
-      const el = cardRefs.current[key];
-      if (!el) return;
+      toast({ title: "Generating PDF...", description: "Please wait while we prepare your certificate" });
+
+      // Create a temporary container
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      document.body.appendChild(container);
+
+      // Render the certificate
+      const root = createRoot(container);
+
+      await new Promise<void>((resolve) => {
+        root.render(
+          <div style={{ width: '210mm', height: '297mm' }}>
+            <CertificateRenderer
+              templateId="template-1"
+              certificateData={{
+                certificateId: cert.id.toString(),
+                learnerName: cert.learnerName || "Certificate Holder",
+                courseName: cert.templateName || "Course",
+                marks: "N/A",
+                issueDate: new Date(cert.issuedAt * 1000).toLocaleDateString(),
+                expiryDate: cert.validUntil && cert.validUntil > 0
+                  ? new Date(cert.validUntil * 1000).toLocaleDateString()
+                  : "lifetime",
+                instituteName: cert.instituteName || "Institution",
+                identityHash: cert.dataHash  // Pass the actual dataHash from blockchain
+              }}
+              includeQR={true}
+              qrData={`${window.location.origin}/verify?certId=${cert.id}`}
+            />
+          </div>
+        );
+        // Wait for render
+        setTimeout(resolve, 1000);
+      });
+
+      // Import libraries and generate PDF
       const [{ default: html2canvas }, { default: jsPDF }]: any = await Promise.all([
         import('html2canvas'),
         import('jspdf')
       ]);
-      const canvas = await html2canvas(el, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [canvas.width, canvas.height] });
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`certificate-${key}.pdf`);
-    } catch (e: any) {
-      toast({ title: 'Download failed', description: e?.message || 'Please install dependencies', variant: 'destructive' });
-    }
-  };
 
-  const handleGenerateQrAndSave = async (key: string, payload: { certId: number }) => {
-    try {
-      const { default: QRCode } = await import('qrcode');
-      // Backend URL embedding certId; adjust path if needed
-      const qrText = `${window.location.origin}/verify?certId=${payload.certId}`;
-      const dataUrl = await QRCode.toDataURL(qrText, { margin: 1, width: 512 });
-      setQrDataUrls(prev => ({ ...prev, [key]: dataUrl }));
-      // Trigger download
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `certificate-${payload.certId}-qr.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const canvas = await html2canvas(container.firstChild as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`certificate-${cert.id}.pdf`);
+
+      // Cleanup
+      root.unmount();
+      document.body.removeChild(container);
+
+      toast({ title: "Success!", description: "Certificate downloaded successfully" });
     } catch (e: any) {
-      toast({ title: 'QR generation failed', description: e?.message || 'Unable to generate QR', variant: 'destructive' });
+      console.error('PDF generation error:', e);
+      toast({
+        title: 'Download failed',
+        description: e?.message || 'Unable to generate PDF',
+        variant: 'destructive'
+      });
     }
   };
 
   useEffect(() => {
+
     const load = async () => {
       if (!address) { setCertificates([]); return; }
       setLoading(true);
       try {
         const rows = await blockchainService.fetchCertificatesByLearnerWallet(address);
-        setCertificates(rows.map(r => ({ id: r.certId, templateId: r.templateId, templateName: r.templateName, instituteName: r.instituteName, issuedAt: r.issuedAt, validUntil: r.validUntil, revoked: r.revoked, txHash: r.txHash })));
+        setCertificates(rows.map(r => ({
+          id: r.certId,
+          templateId: r.templateId,
+          templateName: r.templateName,
+          instituteName: r.instituteName,
+          learnerName: r.learnerName,
+          issuedAt: r.issuedAt,
+          validUntil: r.validUntil,
+          revoked: r.revoked,
+          dataHash: r.dataHash,
+          txHash: r.txHash
+        })));
       } catch (_) {
         setCertificates([]);
       } finally {
@@ -73,7 +128,7 @@ export default function Certificates() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
-      
+
       <main className="flex-1 py-12 blockchain-grid">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-12 space-y-4">
@@ -125,76 +180,71 @@ export default function Certificates() {
           {/* Certificate Gallery */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {certificates.map((cert, index) => (
-              <Card 
+              <Card
                 key={cert.txHash}
-                className="bg-card/50 backdrop-blur-sm border-border/50 hover:border-accent/50 transition-all duration-300 hover:shadow-card group cursor-pointer"
+                className="bg-card/50 backdrop-blur-sm border-border/50 hover:border-accent/50 transition-all duration-300 hover:shadow-card group"
                 style={{ animationDelay: `${index * 100}ms` }}
-                ref={(node) => { cardRefs.current[cert.txHash] = node; }}
               >
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <Badge 
-                      variant="default" 
+                    <Badge
+                      variant="default"
                       className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/20"
                     >
-                      {cert.revoked ? 'revoked' : 'active'}
+                      {cert.revoked ? 'Revoked' : 'Active'}
                     </Badge>
                     <div className="text-right">
                       <div className="text-xs text-muted-foreground">Cert ID</div>
                       <div className="font-mono text-sm font-bold text-accent">#{cert.id}</div>
                     </div>
                   </div>
-                  {cert.templateName ? (
-                    <CardTitle className="font-heading text-lg leading-tight group-hover:text-accent transition-colors">
-                      {cert.templateName}
-                    </CardTitle>
-                  ) : null}
+                  <CardTitle className="font-heading text-lg leading-tight group-hover:text-accent transition-colors">
+                    {cert.templateName || 'Certificate'}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Certificate Template */}
-                  <div className="space-y-4 text-sm">
-                    <div className="text-center">
-                      <h3 className="font-heading text-xl font-bold">{cert.templateName || ''}</h3>
-                      <p className="text-muted-foreground">{cert.instituteName || 'Unknown Institute'}</p>
-                      <p className="text-lg font-semibold text-accent mt-2">{cert.learnerName || 'Certificate Holder'}</p>
+                  {/* Certificate Details - No Duplicates */}
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between py-2 border-b border-border/30">
+                      <span className="text-muted-foreground">Institute</span>
+                      <span className="font-medium text-right">{cert.instituteName || 'Unknown'}</span>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Issue Date</span>
-                        <span className="font-medium">{new Date(cert.issuedAt * 1000).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Expiry Date</span>
-                        <span className="font-medium">{cert.validUntil && cert.validUntil > 0 ? new Date(cert.validUntil * 1000).toLocaleDateString() : 'Lifetime'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Certificate ID</span>
-                        <span className="font-mono text-sm font-bold text-accent">#{cert.id}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Institute</span>
-                        <span className="font-medium">{cert.instituteName || 'Unknown'}</span>
-                      </div>
+                    <div className="flex items-center justify-between py-2 border-b border-border/30">
+                      <span className="text-muted-foreground">Issue Date</span>
+                      <span className="font-medium">{new Date(cert.issuedAt * 1000).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-border/30">
+                      <span className="text-muted-foreground">Validity</span>
+                      <span className="font-medium">{cert.validUntil && cert.validUntil > 0 ? new Date(cert.validUntil * 1000).toLocaleDateString() : 'Lifetime'}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-muted-foreground">Status</span>
+                      <span className={`font-medium ${cert.revoked ? 'text-destructive' : 'text-accent'}`}>
+                        {cert.revoked ? 'Revoked' : 'Verified'}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-border/50 grid grid-cols-1 gap-2">
-                    <Button variant="outline" size="sm" className="border-accent/30 hover:border-accent gap-2" onClick={() => handleGenerateQrAndSave(cert.txHash, { certId: cert.id })}>
-                      <QrCode className="h-3 w-3" />
-                      Generate QR & Save
+                  {/* Download Certificate Button */}
+                  <div className="pt-4 border-t border-border/50 space-y-2">
+                    <Button
+                      variant="neon"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => handleDownloadPdf(cert)}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download Certificate
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 border-accent/30 hover:border-accent"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Add to DigiLocker
                     </Button>
                   </div>
-
-                  {qrDataUrls[cert.txHash] && (
-                    <div className="mt-4 flex justify-center">
-                      <img src={qrDataUrls[cert.txHash]} alt="Certificate QR" className="w-40 h-40 object-contain bg-white p-2 rounded" />
-                    </div>
-                  )}
-                  
-                  <Button variant="neon" size="sm" className="w-full gap-2">
-                    <ExternalLink className="h-3 w-3" />
-                    Add to DigiLocker
-                  </Button>
                 </CardContent>
               </Card>
             ))}

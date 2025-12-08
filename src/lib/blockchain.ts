@@ -73,7 +73,7 @@ const CERT_AGENCY_ABI = [
     "inputs": [
       { "name": "wallet", "type": "address", "internalType": "address" }
     ],
-    "outputs": [ { "name": "", "type": "uint256", "internalType": "uint256" } ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -118,8 +118,8 @@ const CERTIFIER_ABI = [
   {
     "type": "function",
     "name": "walletToStaffId",
-    "inputs": [ { "name": "wallet", "type": "address", "internalType": "address" } ],
-    "outputs": [ { "name": "", "type": "uint256", "internalType": "uint256" } ],
+    "inputs": [{ "name": "wallet", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -198,8 +198,8 @@ const RECEIVER_ABI = [
   {
     "type": "function",
     "name": "walletToLearnerId",
-    "inputs": [ { "name": "wallet", "type": "address", "internalType": "address" } ],
-    "outputs": [ { "name": "", "type": "uint256", "internalType": "uint256" } ],
+    "inputs": [{ "name": "wallet", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -474,28 +474,28 @@ class BlockchainService {
       const institutes = [];
       const timeout = 8000; // 8 second timeout
       const startTime = Date.now();
-      
+
       console.log('Starting optimized institute fetching...');
-      
+
       // First, try to get institutes from events (faster approach)
       try {
         const filter = this.state.contracts.certAgency.filters.InstituteAdded();
         const events = await this.state.contracts.certAgency.queryFilter(filter);
-        
+
         console.log(`Found ${events.length} institute events`);
-        
+
         // Process events to get institute data
         for (const event of events) {
           if (Date.now() - startTime > timeout) {
             console.log('Timeout reached during event processing');
             break;
           }
-          
+
           try {
             const instituteId = event.args?.id?.toString();
             if (instituteId) {
               const institute = await this.state.contracts.certAgency.institutes(instituteId);
-              
+
               if (institute && institute.id.toString() !== '0') {
                 institutes.push({
                   id: institute.id.toString(),
@@ -510,7 +510,7 @@ class BlockchainService {
             console.log(`Error processing institute ${event.args?.id}:`, error);
           }
         }
-        
+
         if (institutes.length > 0) {
           console.log(`Found ${institutes.length} institutes from events in ${Date.now() - startTime}ms`);
           return { success: true, institutes };
@@ -518,16 +518,16 @@ class BlockchainService {
       } catch (error) {
         console.log('Event-based fetching failed, falling back to direct method:', error);
       }
-      
+
       // Fallback: Direct method with limited range
       console.log('Using fallback direct method...');
       let instituteId = 1;
       const maxAttempts = 20; // Only check first 20 institutes
-      
+
       while (instituteId <= maxAttempts && Date.now() - startTime < timeout) {
         try {
           const institute = await this.state.contracts.certAgency.institutes(instituteId);
-          
+
           if (institute && institute.id.toString() !== '0' && institute.id.toString() === instituteId.toString()) {
             institutes.push({
               id: institute.id.toString(),
@@ -654,7 +654,7 @@ class BlockchainService {
       let active: boolean | undefined = undefined;
       try {
         active = await this.isTemplateActive(templateId);
-      } catch (_) {}
+      } catch (_) { }
       return { id, name, description, creatorInstituteId, active } as any;
     } catch (error) {
       console.error('Error reading template details:', error);
@@ -699,7 +699,7 @@ class BlockchainService {
       // Convert dataHash string to bytes32 format
       const dataHashBytes32 = ethers.utils.hexZeroPad(dataHash, 32);
       console.log('Calling issueCertificate with:', { learnerId, templateId, validUntil, dataHash, dataHashBytes32 });
-      
+
       // Add gas estimation
       try {
         const gasEstimate = await this.state.contracts.certificates.estimateGas.issueCertificate(learnerId, templateId, validUntil, dataHashBytes32);
@@ -707,10 +707,10 @@ class BlockchainService {
       } catch (gasError) {
         console.error('Gas estimation failed:', gasError);
       }
-      
+
       const tx = await this.state.contracts.certificates.issueCertificate(learnerId, templateId, validUntil, dataHashBytes32);
       console.log('Transaction sent:', tx.hash);
-      
+
       const receipt = await tx.wait();
       console.log('Transaction receipt:', receipt);
       console.log('Transaction status:', receipt.status);
@@ -719,7 +719,7 @@ class BlockchainService {
       // Extract certificate ID from events
       let certId: number | undefined;
       let eventFound = false;
-      
+
       if (receipt.events) {
         console.log('Events in receipt:', receipt.events);
         const event = receipt.events.find((e: any) => e.event === 'CertificateIssued');
@@ -730,15 +730,15 @@ class BlockchainService {
         } else {
           console.log('No CertificateIssued event found in events array');
         }
-      } 
-      
+      }
+
       if (!eventFound && receipt.logs) {
         // Handle case where events are in logs array
         console.log('Checking logs for CertificateIssued event:', receipt.logs);
         const iface = new ethers.utils.Interface([
           'event CertificateIssued(uint256 indexed certId, uint256 learnerId, uint256 templateId, uint256 staffId, uint256 instituteId)'
         ]);
-        
+
         for (const log of receipt.logs) {
           try {
             const parsed = iface.parseLog(log);
@@ -758,7 +758,7 @@ class BlockchainService {
       // we can still consider it successful since the transaction went through
       if (receipt.status === 1) {
         console.log('Transaction successful, status:', receipt.status);
-        
+
         // If we couldn't get certId from events, try to get it by querying the contract
         if (!certId) {
           try {
@@ -772,7 +772,7 @@ class BlockchainService {
             console.log('Could not query certificate ID:', queryError);
           }
         }
-        
+
         return { success: true, txHash: tx.hash, certId: certId || undefined };
       } else {
         console.log('Transaction failed, status:', receipt.status);
@@ -892,13 +892,13 @@ class BlockchainService {
       // Test basic connectivity
       const network = await this.state.provider.getNetwork();
       const blockNumber = await this.state.provider.getBlockNumber();
-      
+
       // Check if we're on a supported network
       const supportedChainIds = Object.values(SUPPORTED_NETWORKS).map(n => n.chainId);
       const networkMismatch = !supportedChainIds.includes(network.chainId);
-      
-      return { 
-        connected: true, 
+
+      return {
+        connected: true,
         networkInfo: {
           name: network.name,
           chainId: network.chainId,
@@ -908,7 +908,7 @@ class BlockchainService {
       };
     } catch (error: any) {
       console.error('Blockchain connectivity test failed:', error);
-      
+
       // Check for specific error types
       let errorMessage = error.message || 'Failed to connect to blockchain';
       if (error.message?.includes('429')) {
@@ -918,9 +918,9 @@ class BlockchainService {
       } else if (error.message?.includes('CORS')) {
         errorMessage = 'CORS error. RPC URL may not be accessible from browser.';
       }
-      
-      return { 
-        connected: false, 
+
+      return {
+        connected: false,
         error: errorMessage
       };
     }
@@ -935,12 +935,12 @@ class BlockchainService {
     const baseId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     let counter = 1;
     let uniqueId = baseId;
-    
+
     while (existingIds.includes(uniqueId)) {
       uniqueId = `${baseId}_${counter}`;
       counter++;
     }
-    
+
     return uniqueId;
   }
 
@@ -1066,7 +1066,7 @@ class BlockchainService {
     walletAddress: string,
     fromBlock = 0,
     toBlock?: number
-  ): Promise<Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; txHash: string }>> {
+  ): Promise<Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; dataHash?: string; txHash: string }>> {
     if (!this.state.provider) this.ensureReadContracts();
     if (!this.state.provider) throw new Error('Not connected to provider');
     const learnerId = await this.getLearnerIdByWallet(walletAddress);
@@ -1085,32 +1085,34 @@ class BlockchainService {
     const matches = logs
       .map((l) => ({ parsed: iface.parseLog(l), log: l }))
       .filter((d: any) => Number(d.parsed.args.learnerId.toString()) === learnerId);
-    const results: Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; txHash: string }> = [];
+    const results: Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; dataHash?: string; txHash: string }> = [];
     for (const item of matches) {
       const block = await this.state.provider!.getBlock(item.log.blockNumber);
-      // also read revoked flag from contract storage
+      // also read revoked flag and dataHash from contract storage
       let revoked = false;
       let validUntil: number | undefined = undefined;
       let instituteId: number | undefined = undefined;
+      let dataHash: string | undefined = undefined;
       try {
         if (!this.state.contracts.certificates) this.ensureReadContracts();
         const certData = await this.state.contracts.certificates!.certificates(Number(item.parsed.args.certId.toString()));
         revoked = Boolean(certData.revoked);
         validUntil = Number(certData.validUntil?.toString?.() ?? certData.validUntil ?? 0);
         instituteId = Number(certData.instituteId?.toString?.() ?? certData.instituteId ?? 0) || undefined;
-      } catch (_) {}
+        dataHash = String(certData.dataHash);
+      } catch (_) { }
       let templateName: string | undefined = undefined;
       try {
         const t = await this.getTemplateDetails(Number(item.parsed.args.templateId.toString()));
         templateName = t?.name;
-      } catch (_) {}
+      } catch (_) { }
       let instituteName: string | undefined = undefined;
       try {
         if (typeof instituteId === 'number') {
           const inst = await this.getInstituteDetails(instituteId);
           instituteName = inst?.name;
         }
-      } catch (_) {}
+      } catch (_) { }
       // For now, we'll show a generic learner name since we can't reverse the hash
       // In a future implementation, learner names could be stored separately
       let learnerName = 'Certificate Holder';
@@ -1125,6 +1127,7 @@ class BlockchainService {
         issuedAt: Number(block.timestamp),
         validUntil,
         revoked,
+        dataHash,
         txHash: item.log.transactionHash
       });
     }
