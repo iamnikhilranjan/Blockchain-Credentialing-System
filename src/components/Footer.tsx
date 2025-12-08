@@ -39,7 +39,7 @@ export const Footer = () => {
               <span className="font-heading text-xl font-bold">Ordinals</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Dewwakar credentials that are secure, verifiable, and trusted forever.
+              Blockchain-Powered credentials that are secure, verifiable, and trusted forever.
             </p>
             <div className="flex gap-4">
               {socialLinks.map((social) => (
