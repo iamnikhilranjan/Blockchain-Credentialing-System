@@ -11,8 +11,10 @@ import { Footer } from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import blockchainService from "@/lib/blockchain";
 import BulkVerification from "@/components/BulkVerification";
+import { useTranslation } from "react-i18next";
 
 export default function Verify() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [certificateId, setCertificateId] = useState("");
   const [learnerName, setLearnerName] = useState("");
@@ -536,18 +538,18 @@ export default function Verify() {
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="text-center mb-12 space-y-4">
             <h1 className="font-heading text-4xl md:text-5xl font-bold">
-              Verify <span className="text-accent">Certificate</span>
+              {t('verifyCertificatePage').split(' ')[0]} <span className="text-accent">{t('verifyCertificatePage').split(' ').slice(1).join(' ')}</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Instantly verify the authenticity of any certificate
+              {t('verifyCertificateDesc')}
             </p>
           </div>
 
           <Card className="shadow-card bg-card/50 backdrop-blur-sm border-border/50">
             <CardHeader>
-              <CardTitle className="font-heading text-2xl">Certificate Verification</CardTitle>
+              <CardTitle className="font-heading text-2xl">{t('certificateVerification')}</CardTitle>
               <CardDescription>
-                Choose your preferred verification method
+                {t('chooseVerificationMethod')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -555,15 +557,15 @@ export default function Verify() {
                 <TabsList className="grid w-full grid-cols-3 mb-8">
                   <TabsTrigger value="scan" className="gap-2">
                     <QrCode className="h-4 w-4" />
-                    Scan QR Code
+                    {t('scanQRCode')}
                   </TabsTrigger>
                   <TabsTrigger value="manual" className="gap-2">
                     <Search className="h-4 w-4" />
-                    Manual Verify
+                    {t('manualVerify')}
                   </TabsTrigger>
                   <TabsTrigger value="bulksig" className="gap-2">
                     <Search className="h-4 w-4" />
-                    Bulk Sig
+                    {t('bulkSig')}
                   </TabsTrigger>
                 </TabsList>
 
@@ -574,12 +576,12 @@ export default function Verify() {
                       {blockchainService.isSecureContext() ? (
                         <>
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Secure connection (HTTPS) - Camera ready</span>
+                          <span>{t('secureConnection')}</span>
                         </>
                       ) : (
                         <>
                           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span>Insecure connection - Camera access blocked</span>
+                          <span>{t('insecureConnection')}</span>
                         </>
                       )}
                     </div>
@@ -597,17 +599,17 @@ export default function Verify() {
                         onClick={handleQRScan}
                         disabled={isScanning || !blockchainService.isSecureContext()}
                       >
-                        {isScanning ? 'Scanning...' : 'Start QR Scan'}
+                        {isScanning ? t('scanning') : t('startQRScan')}
                       </Button>
                       {isScanning && (
                         <Button variant="outline" size="lg" onClick={stopCamera}>
-                          Stop Scan
+                          {t('stopScan')}
                         </Button>
                       )}
                     </div>
                     {!blockchainService.isSecureContext() && (
                       <p className="text-xs text-muted-foreground text-center max-w-md">
-                        Camera access requires HTTPS. Please ensure your website is served over a secure connection.
+                        {t('cameraAccessError')}
                       </p>
                     )}
                   </div>
@@ -616,42 +618,42 @@ export default function Verify() {
                 <TabsContent value="manual" className="space-y-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="certId">Certificate ID <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="certId">{t('certificateId')} <span className="text-destructive">*</span></Label>
                       <Input
                         id="certId"
-                        placeholder="Enter certificate ID (e.g., 123)"
+                        placeholder={t('certificateIdPlaceholder')}
                         value={certificateId}
                         onChange={(e) => setCertificateId(e.target.value)}
                         className="bg-background/50"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Enter the certificate ID from the blockchain
+                        {t('certificateIdHelp')}
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="learnerName">Learner Name <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="learnerName">{t('learnerName')} <span className="text-destructive">*</span></Label>
                       <Input
                         id="learnerName"
-                        placeholder="Enter learner's full name"
+                        placeholder={t('learnerNamePlaceholder')}
                         value={learnerName}
                         onChange={(e) => setLearnerName(e.target.value)}
                         className="bg-background/50"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Enter the exact name as it appears on the certificate
+                        {t('learnerNameHelp')}
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="courseName">Course Name <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="courseName">{t('courseName')} <span className="text-destructive">*</span></Label>
                       <Input
                         id="courseName"
-                        placeholder="Enter course/template name (e.g., Web Development)"
+                        placeholder={t('courseNamePlaceholder')}
                         value={courseName}
                         onChange={(e) => setCourseName(e.target.value)}
                         className="bg-background/50"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Enter the exact course name as it appears on the certificate
+                        {t('courseNameHelp')}
                       </p>
                     </div>
                     <Button
@@ -667,10 +669,10 @@ export default function Verify() {
                       {isLoading ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Verifying on Blockchain...
+                          {t('verifyingOnBlockchain')}
                         </>
                       ) : (
-                        'Verify Certificate'
+                        t('verifyCertificatePage')
                       )}
                     </Button>
                     {(!certificateId || !learnerName || !courseName) && (
@@ -694,7 +696,7 @@ export default function Verify() {
                 <div key={verificationKey} className="mt-4 space-y-4 animate-in fade-in slide-in-from-bottom-4">
                   <div className="border-t border-border/50 pt-4">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-heading text-xl font-semibold">Verification Result</h3>
+                      <h3 className="font-heading text-xl font-semibold">{t('verificationResult')}</h3>
                       <Badge
                         variant={verificationResult.status === "authentic" ? "default" : "destructive"}
                         className={verificationResult.status === "authentic" ? "bg-accent text-accent-foreground" : ""}
@@ -704,9 +706,9 @@ export default function Verify() {
                         ) : (
                           <XCircle className="h-4 w-4 mr-2" />
                         )}
-                        {verificationResult.status === "authentic" ? "Authentic" :
-                          verificationResult.status === "revoked" ? "Revoked" :
-                            verificationResult.status === "invalid" ? "Invalid" : "Error"}
+                        {verificationResult.status === "authentic" ? t('authentic') :
+                          verificationResult.status === "revoked" ? t('revoked') :
+                            verificationResult.status === "invalid" ? t('invalid') : t('error')}
                       </Badge>
                     </div>
 
@@ -715,25 +717,25 @@ export default function Verify() {
                         {verificationResult.status === "authentic" || verificationResult.status === "revoked" ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                              <Label className="text-muted-foreground">Certificate ID</Label>
+                              <Label className="text-muted-foreground">{t('certificateId')}</Label>
                               <p className="font-semibold font-mono text-lg text-accent">{verificationResult.certificateId}</p>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Learner Name</Label>
+                              <Label className="text-muted-foreground">{t('learnerName')}</Label>
                               <p className="font-semibold">{verificationResult.learnerName || "Not provided"}</p>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Learner ID</Label>
+                              <Label className="text-muted-foreground">{t('learnerId')}</Label>
                               <p className="font-semibold">{verificationResult.learnerId}</p>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Template</Label>
+                              <Label className="text-muted-foreground">{t('template')}</Label>
                               <div className="space-y-1">
                                 <p className="font-semibold">
                                   {detailsLoading ? (
                                     <span className="flex items-center gap-2">
                                       <Loader2 className="h-3 w-3 animate-spin" />
-                                      Loading...
+                                      {t('loading')}
                                     </span>
                                   ) : fetchedDetails.templateName ? (
                                     fetchedDetails.templateName
@@ -747,13 +749,13 @@ export default function Verify() {
                               </div>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Staff</Label>
+                              <Label className="text-muted-foreground">{t('staff')}</Label>
                               <div className="space-y-1">
                                 <p className="font-semibold">
                                   {detailsLoading ? (
                                     <span className="flex items-center gap-2">
                                       <Loader2 className="h-3 w-3 animate-spin" />
-                                      Loading...
+                                      {t('loading')}
                                     </span>
                                   ) : fetchedDetails.staffName ? (
                                     fetchedDetails.staffName
@@ -767,13 +769,13 @@ export default function Verify() {
                               </div>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Institute</Label>
+                              <Label className="text-muted-foreground">{t('institute')}</Label>
                               <div className="space-y-1">
                                 <p className="font-semibold">
                                   {detailsLoading ? (
                                     <span className="flex items-center gap-2">
                                       <Loader2 className="h-3 w-3 animate-spin" />
-                                      Loading...
+                                      {t('loading')}
                                     </span>
                                   ) : fetchedDetails.instituteName ? (
                                     fetchedDetails.instituteName
@@ -787,26 +789,26 @@ export default function Verify() {
                               </div>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Issue Date</Label>
+                              <Label className="text-muted-foreground">{t('issueDate')}</Label>
                               <p className="font-semibold">{verificationResult.issuedAt}</p>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Valid Until</Label>
+                              <Label className="text-muted-foreground">{t('validUntil')}</Label>
                               <p className="font-semibold">{verificationResult.validUntil}</p>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Course Name</Label>
+                              <Label className="text-muted-foreground">{t('courseName')}</Label>
                               <p className="font-semibold text-accent">{verificationResult.courseName || "Not provided"}</p>
                             </div>
                             <div className="md:col-span-2">
-                              <Label className="text-muted-foreground">Data Hash</Label>
+                              <Label className="text-muted-foreground">{t('dataHash')}</Label>
                               <p className="font-mono text-xs break-all">{verificationResult.dataHash}</p>
                             </div>
                           </div>
                         ) : (
                           <div className="text-center py-8">
                             <XCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
-                            <h3 className="font-heading text-xl font-bold mb-2">Verification Failed</h3>
+                            <h3 className="font-heading text-xl font-bold mb-2">{t('verificationFailed')}</h3>
                             <p className="text-muted-foreground">
                               {verificationResult.error || "Certificate could not be verified"}
                             </p>
@@ -820,17 +822,17 @@ export default function Verify() {
                     {(verificationResult.status === "authentic" || verificationResult.status === "revoked") && (
                       <Card className="bg-background/50 border-accent/20 mt-4">
                         <CardHeader>
-                          <CardTitle className="font-heading text-lg">Verify Aadhaar Identity</CardTitle>
+                          <CardTitle className="font-heading text-lg">{t('verifyAadhaarIdentity')}</CardTitle>
                           <CardDescription>
-                            Enter the Aadhaar number to verify the certificate holder's identity
+                            {t('verifyAadhaarDesc')}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="aadhaarInput">Aadhaar Number</Label>
+                            <Label htmlFor="aadhaarInput">{t('aadhaarNumber')}</Label>
                             <Input
                               id="aadhaarInput"
-                              placeholder="Enter 12-digit Aadhaar number"
+                              placeholder={t('aadhaarPlaceholder')}
                               value={aadhaarInput}
                               onChange={(e) => setAadhaarInput(e.target.value)}
                               className="bg-background/50"
@@ -838,7 +840,7 @@ export default function Verify() {
                               disabled={aadhaarVerifying}
                             />
                             <p className="text-xs text-muted-foreground">
-                              The Aadhaar number will be hashed and compared with the blockchain record
+                              {t('aadhaarHelp')}
                             </p>
                           </div>
 
@@ -851,10 +853,10 @@ export default function Verify() {
                             {aadhaarVerifying ? (
                               <>
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                Verifying Aadhaar...
+                                {t('verifyingAadhaar')}
                               </>
                             ) : (
-                              'Verify Aadhaar'
+                              t('verifyAadhaar')
                             )}
                           </Button>
 
@@ -871,9 +873,9 @@ export default function Verify() {
                                   <>
                                     <CheckCircle2 className="h-6 w-6 text-green-600" />
                                     <div>
-                                      <h4 className="font-semibold text-green-700">Aadhaar Verified</h4>
+                                      <h4 className="font-semibold text-green-700">{t('aadhaarVerified')}</h4>
                                       <p className="text-sm text-green-600">
-                                        The Aadhaar number matches the certificate holder's identity
+                                        {t('aadhaarVerifiedDesc')}
                                       </p>
                                     </div>
                                   </>
@@ -881,9 +883,9 @@ export default function Verify() {
                                   <>
                                     <XCircle className="h-6 w-6 text-red-600" />
                                     <div>
-                                      <h4 className="font-semibold text-red-700">Aadhaar Unverified</h4>
+                                      <h4 className="font-semibold text-red-700">{t('aadhaarUnverified')}</h4>
                                       <p className="text-sm text-red-600">
-                                        The Aadhaar number does not match the certificate holder's identity
+                                        {t('aadhaarUnverifiedDesc')}
                                       </p>
                                     </div>
                                   </>
@@ -915,7 +917,7 @@ export default function Verify() {
                         className="gap-2"
                       >
                         <QrCode className="h-4 w-4" />
-                        Scan Another Certificate
+                        {t('scanAnotherCertificate')}
                       </Button>
                     </div>
                   </div >

@@ -6,41 +6,44 @@ import { cn } from "@/lib/utils";
 import { WalletConnection } from "@/components/WalletConnection";
 import { useBlockchain } from "@/contexts/BlockchainContext";
 import { ModeToggle } from "@/components/mode-toggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { isConnected, isAuthorized, userRole } = useBlockchain();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Filter navigation items based on user role and authorization
   const getNavItems = () => {
     const baseItems = [
-      { name: "Home", path: "/" },
-      { name: "Verify Certificate", path: "/verify" },
+      { name: t('home'), path: "/" },
+      { name: t('verifyCertificate'), path: "/verify" },
     ];
 
     if (isConnected) {
-      baseItems.push({ name: "My Certificates", path: "/certificates" });
+      baseItems.push({ name: t('myCertificates'), path: "/certificates" });
     }
 
     if (isAuthorized) {
       // Staff only can issue
       if (userRole === 'staff') {
-        baseItems.push({ name: "Issue Certificate", path: "/issue" });
+        baseItems.push({ name: t('issueCertificate'), path: "/issue" });
       }
       // Institute only sees Institute panel
       if (userRole === 'institute') {
-        baseItems.push({ name: "Institute", path: "/institute" });
+        baseItems.push({ name: t('institute'), path: "/institute" });
       }
       // Admin only sees Manage Roles
       if (userRole === 'admin') {
-        baseItems.push({ name: "Manage Roles", path: "/roles" });
+        baseItems.push({ name: t('manageRoles'), path: "/roles" });
       }
     }
 
     // Always add FAQ as the last item
-    baseItems.push({ name: "FAQ", path: "/#faq" });
+    baseItems.push({ name: t('faq'), path: "/#faq" });
 
     return baseItems;
   };
@@ -117,6 +120,7 @@ export const Navigation = () => {
 
           {/* Wallet Connection & Theme Toggle */}
           <div className="hidden md:flex items-center gap-4">
+            <LanguageSwitcher />
             <ModeToggle />
             <WalletConnection showDetails={false} />
           </div>
@@ -151,7 +155,11 @@ export const Navigation = () => {
                 {item.name}
               </Link>
             ))}
-            <div className="pt-4 border-t border-border">
+            <div className="pt-4 border-t border-border space-y-4">
+              <div className="flex justify-between items-center px-4">
+                <span className="text-sm font-medium text-muted-foreground">{t('selectLanguage')}</span>
+                <LanguageSwitcher />
+              </div>
               <WalletConnection showDetails={false} className="w-full" />
             </div>
           </div>
