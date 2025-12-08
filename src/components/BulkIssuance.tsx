@@ -9,8 +9,10 @@ import { Loader2, Upload, FileSpreadsheet, ShieldCheck, Download, AlertCircle } 
 import { readExcelFile, ParsedRow, generateSignedExcel } from "@/utils/excelParser";
 import { signCertificate } from "@/utils/eip712";
 import { ethers } from "ethers";
+import { useTranslation, Trans } from "react-i18next";
 
 export function BulkIssuance() {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
@@ -37,7 +39,7 @@ export function BulkIssuance() {
                 const rows = await readExcelFile(selectedFile);
                 setParsedRows(rows);
                 toast({
-                    title: "File Parsed Successfully",
+                    title: t('fileParsedSuccess'),
                     description: `Found ${rows.length} valid records in ${selectedFile.name}`,
                 });
             } catch (error: any) {
@@ -150,7 +152,7 @@ export function BulkIssuance() {
 
         } catch (error: any) {
             console.error('=== FATAL ERROR ===', error);
-            toast({ title: "Process Failed", description: error.message, variant: "destructive" });
+            toast({ title: t('processFailed'), description: error.message, variant: "destructive" });
         } finally {
             setIsSigning(false);
         }
@@ -189,10 +191,10 @@ export function BulkIssuance() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <FileSpreadsheet className="h-6 w-6 text-accent" />
-                        Bulk Certificate Issuance
+                        {t('bulkIssuanceTitle')}
                     </CardTitle>
                     <CardDescription>
-                        Upload an Excel/CSV file to issue multiple certificates at once.
+                        {t('bulkIssuanceDesc')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -205,8 +207,8 @@ export function BulkIssuance() {
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                         <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="font-semibold text-lg">Drop .xlsx/.xls/.csv here</h3>
-                        <p className="text-muted-foreground text-sm">or click to browse</p>
+                        <h3 className="font-semibold text-lg">{t('dropFile')}</h3>
+                        <p className="text-muted-foreground text-sm">{t('clickBrowse')}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -226,8 +228,8 @@ export function BulkIssuance() {
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                         <Upload className="h-10 w-10 text-accent mx-auto mb-4" />
-                        <h3 className="font-semibold text-lg">Drop .xlsx/.xls/.csv here</h3>
-                        <p className="text-muted-foreground text-sm">or click to browse</p>
+                        <h3 className="font-semibold text-lg">{t('dropFile')}</h3>
+                        <p className="text-muted-foreground text-sm">{t('clickBrowse')}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -240,18 +242,18 @@ export function BulkIssuance() {
                 <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2 text-xl">
                         <ShieldCheck className="h-5 w-5" />
-                        Sign Certificates
+                        {t('signCertificates')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid gap-4">
                         <div className="space-y-2">
-                            <Label>Contract Address</Label>
+                            <Label>{t('contractAddressLabel')}</Label>
                             <Input value="0x8e79C63173070B907b36544bB00355EFB4B69c48" readOnly className="font-mono bg-muted/50" />
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Chain ID</Label>
+                            <Label>{t('chainIdLabel')}</Label>
                             <Input value="11155111" readOnly className="font-mono bg-muted/50" />
                         </div>
 
@@ -263,14 +265,14 @@ export function BulkIssuance() {
                                 checked={serverSideSigning}
                                 onChange={(e) => setServerSideSigning(e.target.checked)}
                             />
-                            <Label htmlFor="server-side" className="font-normal cursor-pointer">Server-side signing (advanced)</Label>
+                            <Label htmlFor="server-side" className="font-normal cursor-pointer">{t('serverSideSigning')}</Label>
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Private Key</Label>
+                            <Label>{t('privateKeyLabel')}</Label>
                             <Input
                                 type="password"
-                                placeholder="Enter private key (0x...)"
+                                placeholder={t('privateKeyPlaceholder')}
                                 value={privateKey}
                                 onChange={(e) => setPrivateKey(e.target.value)}
                             />
@@ -280,7 +282,7 @@ export function BulkIssuance() {
                             {isSigning ? (
                                 <Button disabled variant="neon">
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Signing... {signingProgress}%
+                                    {t('signing')} {signingProgress}%
                                 </Button>
                             ) : (
                                 <Button
@@ -289,7 +291,7 @@ export function BulkIssuance() {
                                     disabled={parsedRows.length === 0 || !privateKey}
                                 >
                                     <ShieldCheck className="mr-2 h-4 w-4" />
-                                    Sign All
+                                    {t('signAll')}
                                 </Button>
                             )}
 
@@ -299,7 +301,7 @@ export function BulkIssuance() {
                                 onClick={handleSaveToDB}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></svg>
-                                Save to DB
+                                {t('saveToDB')}
                             </Button>
 
                             <Button
@@ -308,7 +310,7 @@ export function BulkIssuance() {
                                 disabled={signedRows.length === 0}
                             >
                                 <Download className="mr-2 h-4 w-4" />
-                                Download Signed CSV
+                                {t('downloadSignedCSV')}
                             </Button>
                         </div>
                     </div>
@@ -316,7 +318,7 @@ export function BulkIssuance() {
                     {showStatus && (
                         <div className="mt-6 rounded-lg border border-border/50 bg-muted/20 overflow-hidden">
                             <div className="bg-muted/50 px-4 py-2 text-sm font-semibold border-b border-border/50">
-                                Signing Status
+                                {t('signingStatus')}
                             </div>
                             <div className="max-h-[300px] overflow-y-auto">
                                 {parsedRows.map((row, index) => {
@@ -334,14 +336,14 @@ export function BulkIssuance() {
                                                 {status === 'signed' && (
                                                     <span className="flex items-center text-green-500 text-sm">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                                                        Signed
+                                                        {t('signed')}
                                                     </span>
                                                 )}
                                                 {status === 'error' && (
                                                     <div className="group relative flex items-center">
                                                         <span className="flex items-center text-red-500 text-sm cursor-help">
                                                             <AlertCircle className="mr-1 h-4 w-4" />
-                                                            Failed
+                                                            {t('failed')}
                                                         </span>
                                                         <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 w-64 p-2 bg-popover text-popover-foreground text-xs rounded shadow-lg border border-border">
                                                             {errorMessage || "Unknown error"}
@@ -351,7 +353,7 @@ export function BulkIssuance() {
                                                 {!status && (
                                                     <span className="text-muted-foreground text-sm flex items-center">
                                                         <span className="w-2 h-2 rounded-full bg-muted-foreground/30 mr-2"></span>
-                                                        Pending
+                                                        {t('pending')}
                                                     </span>
                                                 )}
                                             </div>

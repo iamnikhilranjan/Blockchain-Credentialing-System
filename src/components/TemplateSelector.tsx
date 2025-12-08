@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ interface TemplateSelectorProps {
 }
 
 export function TemplateSelector({ onTemplateSelect, selectedTemplateId }: TemplateSelectorProps) {
+  const { t } = useTranslation();
   const [displayedCount, setDisplayedCount] = useState(1);
   const templates = getAllTemplates();
 
@@ -26,10 +28,10 @@ export function TemplateSelector({ onTemplateSelect, selectedTemplateId }: Templ
     <div className="space-y-4">
       <div className="space-y-2">
         <h3 className="font-heading text-lg font-semibold border-b border-accent/20 pb-2">
-          Choose Template
+          {t('selectTemplateTitle')}
         </h3>
         <p className="text-sm text-muted-foreground">
-          Select a certificate template for this credential
+          {t('selectTemplateDesc')}
         </p>
       </div>
 
@@ -41,8 +43,8 @@ export function TemplateSelector({ onTemplateSelect, selectedTemplateId }: Templ
             <Card
               key={template.id}
               className={`cursor-pointer transition-all hover:shadow-md ${isSelected
-                  ? "border-accent bg-accent/5 shadow-md"
-                  : "border-border/50 bg-card/50 hover:border-accent/50"
+                ? "border-accent bg-accent/5 shadow-md"
+                : "border-border/50 bg-card/50 hover:border-accent/50"
                 }`}
               onClick={() => onTemplateSelect(template.id)}
             >
@@ -80,7 +82,7 @@ export function TemplateSelector({ onTemplateSelect, selectedTemplateId }: Templ
                       </div>
                       {isSelected && (
                         <Badge variant="default" className="bg-accent text-white text-xs">
-                          Selected
+                          {t('selectedBadge')}
                         </Badge>
                       )}
                     </div>
@@ -95,7 +97,7 @@ export function TemplateSelector({ onTemplateSelect, selectedTemplateId }: Templ
                           onTemplateSelect(template.id);
                         }}
                       >
-                        Choose Template
+                        {t('chooseTemplateBtn')}
                       </Button>
                     )}
                   </div>
@@ -113,14 +115,14 @@ export function TemplateSelector({ onTemplateSelect, selectedTemplateId }: Templ
           className="w-full"
           onClick={handleLoadMore}
         >
-          Load More Templates
+          {t('loadMoreTemplates')}
         </Button>
       )}
 
       {/* Info when all templates are shown */}
       {!hasMore && templates.length > 1 && (
         <p className="text-xs text-center text-muted-foreground">
-          All {templates.length} templates displayed
+          {t('allTemplatesDisplayed', { count: templates.length })}
         </p>
       )}
     </div>

@@ -1,7 +1,9 @@
 import React from "react";
 import { Shield, Building2, Users, GraduationCap, CheckCircle } from "lucide-react";
+import { useTranslation, Trans } from "react-i18next";
 
 export const TrustArchitecture: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <section className="w-full bg-background trust-architecture-section">
       <div className="container mx-auto px-4 md:px-6 lg:px-8 py-12 md:py-16 lg:py-20">
@@ -14,11 +16,11 @@ export const TrustArchitecture: React.FC = () => {
                 <Users className="h-7 w-7 text-white" />
               </div>
               <h4 className="text-xl md:text-2xl font-bold text-accent dark:text-accent">
-                Role-Based User Interface
+                {t('roleBasedUI')}
               </h4>
             </div>
             <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-6">
-              The platform features an <strong className="text-accent">intelligent role-based UI system</strong> that dynamically adapts to each user's authority level and responsibilities within the blockchain ecosystem.
+              <Trans i18nKey="roleBasedUIDesc" components={{ 1: <strong className="text-accent" /> }} />
             </p>
 
             {/* Role-specific features grid */}
@@ -26,33 +28,33 @@ export const TrustArchitecture: React.FC = () => {
               <div className="bg-background/50 rounded-xl p-4 border border-accent/20">
                 <div className="flex items-center mb-2">
                   <Shield className="h-5 w-5 text-blue-500 mr-2" />
-                  <span className="font-semibold text-sm text-blue-700 dark:text-blue-300">NCVET Managers</span>
+                  <span className="font-semibold text-sm text-blue-700 dark:text-blue-300">{t('ncvetManagers')}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Institution management, approval workflows, system oversight</p>
+                <p className="text-xs text-muted-foreground">{t('ncvetManagersDesc')}</p>
               </div>
 
               <div className="bg-background/50 rounded-xl p-4 border border-accent/20">
                 <div className="flex items-center mb-2">
                   <Building2 className="h-5 w-5 text-green-500 mr-2" />
-                  <span className="font-semibold text-sm text-green-700 dark:text-green-300">Institutions</span>
+                  <span className="font-semibold text-sm text-green-700 dark:text-green-300">{t('institutions')}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Template creation, staff management, learner registration</p>
+                <p className="text-xs text-muted-foreground">{t('institutionsDesc')}</p>
               </div>
 
               <div className="bg-background/50 rounded-xl p-4 border border-accent/20">
                 <div className="flex items-center mb-2">
                   <Users className="h-5 w-5 text-purple-500 mr-2" />
-                  <span className="font-semibold text-sm text-purple-700 dark:text-purple-300">Certifiers</span>
+                  <span className="font-semibold text-sm text-purple-700 dark:text-purple-300">{t('certifiers')}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Certificate issuance, learner verification, credential management</p>
+                <p className="text-xs text-muted-foreground">{t('certifiersDesc')}</p>
               </div>
 
               <div className="bg-background/50 rounded-xl p-4 border border-accent/20">
                 <div className="flex items-center mb-2">
                   <GraduationCap className="h-5 w-5 text-amber-500 mr-2" />
-                  <span className="font-semibold text-sm text-amber-700 dark:text-amber-300">Learners</span>
+                  <span className="font-semibold text-sm text-amber-700 dark:text-amber-300">{t('learners')}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Credential viewing, verification requests, achievement tracking</p>
+                <p className="text-xs text-muted-foreground">{t('learnersDesc')}</p>
               </div>
             </div>
 
@@ -68,9 +70,9 @@ export const TrustArchitecture: React.FC = () => {
                   />
                 </div>
                 <div className="p-4 text-center">
-                  <h5 className="font-semibold text-base md:text-lg mb-2">Website Prototype Overview</h5>
+                  <h5 className="font-semibold text-base md:text-lg mb-2">{t('websitePrototypeOverview')}</h5>
                   <p className="text-sm text-muted-foreground">
-                    For Institutional access, kindly Contact Us - <span className="font-medium text-accent">rahulkumarmahto334@gmail.com</span>
+                    <Trans i18nKey="contactUsText" components={{ 1: <span className="font-medium text-accent" /> }} />
                   </p>
                 </div>
               </div>
@@ -90,10 +92,10 @@ export const TrustArchitecture: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-8">
               <h3 className="text-xl md:text-2xl lg:text-3xl font-semibold mb-4">
-                Three-Level Authority Structure
+                {t('authorityStructure')}
               </h3>
               <p className="text-muted-foreground text-base md:text-lg">
-                A hierarchical system ensuring trust and verification at every level
+                {t('authorityStructureDesc')}
               </p>
             </div>
 
@@ -107,10 +109,10 @@ export const TrustArchitecture: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                        NCVET Managers
+                        {t('ncvetManagers')}
                       </h4>
                       <p className="text-sm text-blue-700 dark:text-blue-300">
-                        Top-level administrators who approve and manage institutions
+                        {t('ncvetManagersFullDesc')}
                       </p>
                     </div>
                   </div>
@@ -130,10 +132,10 @@ export const TrustArchitecture: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-                        Institutions
+                        {t('institutions')}
                       </h4>
                       <p className="text-sm text-green-700 dark:text-green-300">
-                        Educational institutions approved by managers to create templates
+                        {t('institutionsFullDesc')}
                       </p>
                     </div>
                   </div>
@@ -153,10 +155,10 @@ export const TrustArchitecture: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-2">
-                        Certifiers
+                        {t('certifiers')}
                       </h4>
                       <p className="text-sm text-purple-700 dark:text-purple-300">
-                        Staff members who issue certificates to registered learners
+                        {t('certifiersFullDesc')}
                       </p>
                     </div>
                   </div>
@@ -169,21 +171,21 @@ export const TrustArchitecture: React.FC = () => {
               <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8">
                 <div className="flex items-center space-x-3">
                   <GraduationCap className="h-6 w-6 text-accent" />
-                  <span className="font-medium">Registered Learners</span>
+                  <span className="font-medium">{t('registeredLearners')}</span>
                 </div>
                 <div className="hidden md:block text-accent">→</div>
                 <div className="flex items-center space-x-3">
                   <CheckCircle className="h-6 w-6 text-accent" />
-                  <span className="font-medium">Certificate Issued</span>
+                  <span className="font-medium">{t('certificateIssued')}</span>
                 </div>
                 <div className="hidden md:block text-accent">→</div>
                 <div className="flex items-center space-x-3">
                   <Shield className="h-6 w-6 text-accent" />
-                  <span className="font-medium">Public Verification</span>
+                  <span className="font-medium">{t('publicVerification')}</span>
                 </div>
               </div>
               <p className="text-center text-sm text-muted-foreground mt-4">
-                Certifiers issue certificates to registered learners, and anyone can verify the certificate authenticity
+                {t('processFlowDesc')}
               </p>
             </div>
 
@@ -199,14 +201,14 @@ export const TrustArchitecture: React.FC = () => {
               <div className="text-center">
                 <h2 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight leading-tight mb-2">
                   <span className="bg-gradient-to-r from-accent via-accent/80 to-accent bg-clip-text text-transparent">
-                    Transforming Education Credentials
+                    {t('transformingCredentials')}
                   </span>
                   <span className="text-foreground ml-2">
-                    Through Blockchain Technology
+                    {t('throughBlockchain')}
                   </span>
                 </h2>
                 <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-2xl mx-auto">
-                  Five smart contracts working together to create tamper-proof, instantly verifiable certificates for every skill and achievement.
+                  {t('contractsDesc')}
                 </p>
               </div>
               <div className="mt-8 md:mt-10 lg:mt-12 grid grid-cols-1 gap-8 items-center">
@@ -220,7 +222,7 @@ export const TrustArchitecture: React.FC = () => {
                 </div>
                 <div className="max-w-3xl mx-auto text-center text-muted-foreground text-base md:text-lg leading-relaxed">
                   <p>
-                    Our platform runs on a five-contract blockchain architecture—a decentralized “chain of trust.” Each contract has a defined role, from verifying institutions to securing individual credentials. This structure makes every achievement tamper-proof, scalable, and permanently verifiable without third-party servers.
+                    {t('contractsArchitectureDesc')}
                   </p>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ethers } from "ethers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import blockchainService from "@/lib/blockchain";
 import { Loader2, UserPlus, UserCheck, FilePlus2 } from "lucide-react";
 
 export default function Institute() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { isAuthorized, userRole, address } = useBlockchain();
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +31,7 @@ export default function Institute() {
 
   const ensureInstitute = () => {
     if (!isAuthorized || userRole !== 'institute') {
-      toast({ title: "Unauthorized", description: "Only institute wallets can access this page", variant: "destructive" });
+      toast({ title: t('toastUnauthorized'), description: t('toastUnauthorizedDesc'), variant: "destructive" });
       return false;
     }
     return true;
@@ -41,29 +43,29 @@ export default function Institute() {
       if (!instituteWallet) return;
       const instituteIdNum = await blockchainService.getInstituteIdByWallet(instituteWallet);
       if (!instituteIdNum) return;
-      
+
       // Set actual blockchain institute ID
       setInstituteId(instituteIdNum);
-      
+
       const [staff, learners, templates] = await Promise.all([
         blockchainService.fetchStaffAddedByInstitute(instituteIdNum),
         blockchainService.fetchLearnersByInstitute(instituteIdNum),
         blockchainService.fetchTemplatesByInstitute(instituteIdNum)
       ]);
-      
+
       // Use actual blockchain IDs directly
       setStaffList(staff.map((s, index) => ({
         ...s,
         designation: `Staff ${index + 1}`
       })));
-      
+
       setLearnersList(learners.map((l, index) => {
         return {
           ...l,
           aadhar: "***HASHED***" // Aadhar is hashed for privacy
         };
       }));
-      
+
       setTemplatesList(templates);
     } catch (e) {
       console.error('Error refreshing lists:', e);
@@ -75,77 +77,77 @@ export default function Institute() {
   const onAddStaff = async () => {
     if (!ensureInstitute()) return;
     if (!staffForm.name || !staffForm.wallet || !staffForm.designation) {
-      toast({ title: "Missing Info", description: "Enter staff name, wallet, and designation" , variant: "destructive"});
+      toast({ title: t('toastMissingInfo'), description: t('toastMissingStaffInfo'), variant: "destructive" });
       return;
     }
     setIsLoading(true);
     try {
       const res = await blockchainService.addStaff(staffForm.name, staffForm.wallet);
       if (!res.success) throw new Error(res.error);
-      
-      toast({ title: "Staff Added", description: `${staffForm.name} authorized successfully` });
+
+      toast({ title: t('toastStaffAdded'), description: t('toastStaffAddedDesc', { name: staffForm.name }) });
       setStaffForm({ name: "", wallet: "", designation: "" });
       await refreshLists();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message || 'Add staff failed', variant: "destructive" });
+      toast({ title: t('failed'), description: e.message || t('processFailed'), variant: "destructive" });
     } finally { setIsLoading(false); }
   };
 
   const onAddLearner = async () => {
     if (!ensureInstitute()) return;
     if (!learnerForm.wallet || !learnerForm.aadhar) {
-      toast({ title: "Missing Info", description: "Enter wallet address and Aadhar ID", variant: "destructive"});
+      toast({ title: t('toastMissingInfo'), description: t('toastMissingLearnerInfo'), variant: "destructive" });
       return;
     }
-    
+
     // Validate wallet
     try {
       // This will throw if invalid
       ethers.utils.getAddress(learnerForm.wallet);
     } catch (_) {
-      toast({ title: "Invalid Wallet", description: "Please enter a valid wallet address" , variant: "destructive"});
+      toast({ title: t('toastInvalidWallet'), description: t('toastInvalidWalletDesc'), variant: "destructive" });
       return;
     }
-    
+
     // Validate Aadhar (basic validation - 12 digits)
     if (!/^\d{12}$/.test(learnerForm.aadhar)) {
-      toast({ title: "Invalid Aadhar", description: "Please enter a valid 12-digit Aadhar ID" , variant: "destructive"});
+      toast({ title: t('toastInvalidAadhar'), description: t('toastInvalidAadharDesc'), variant: "destructive" });
       return;
     }
-    
+
     setIsLoading(true);
     try {
       // Hash the Aadhar before storing on blockchain for privacy
       const aadharHash = blockchainService.createHash(learnerForm.aadhar);
       const res = await blockchainService.registerLearner(learnerForm.wallet, aadharHash);
       if (!res.success) throw new Error(res.error);
-      
-      toast({ title: "Learner Registered", description: `Learner registered successfully (Aadhar hashed for privacy)` });
+
+      toast({ title: t('toastLearnerRegistered'), description: t('toastLearnerRegisteredDesc') });
       setLearnerForm({ wallet: "", aadhar: "" });
       await refreshLists();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message || 'Register learner failed', variant: "destructive" });
-    } finally { 
-      setIsLoading(false); 
+      toast({ title: t('failed'), description: e.message || t('processFailed'), variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const onAddTemplate = async () => {
     if (!ensureInstitute()) return;
     if (!templateForm.name || !templateForm.description) {
-      toast({ title: "Missing Info", description: "Enter template name and description" , variant: "destructive"});
+      toast({ title: t('toastMissingInfo'), description: t('toastMissingTemplateInfo'), variant: "destructive" });
       return;
     }
     setIsLoading(true);
     try {
       const res = await blockchainService.createTemplate(templateForm.name, templateForm.description);
       if (!res.success) throw new Error(res.error);
-      
-      toast({ title: "Template Created", description: `${templateForm.name} created successfully` });
+
+      toast({ title: t('toastTemplateCreated'), description: t('toastTemplateCreatedDesc', { name: templateForm.name }) });
       setTemplateForm({ name: "", description: "" });
       await refreshLists();
     } catch (e: any) {
-      toast({ title: "Failed", description: e.message || 'Create template failed', variant: "destructive" });
+      toast({ title: t('failed'), description: e.message || t('processFailed'), variant: "destructive" });
     } finally { setIsLoading(false); }
   };
 
@@ -155,8 +157,8 @@ export default function Institute() {
       <main className="flex-1 py-12 blockchain-grid">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-8 space-y-4">
-            <h1 className="font-heading text-4xl md:text-5xl font-bold">Institute</h1>
-            <p className="text-xl text-muted-foreground">Manage staff, learners, and templates</p>
+            <h1 className="font-heading text-4xl md:text-5xl font-bold">{t('instituteTitle')}</h1>
+            <p className="text-xl text-muted-foreground">{t('instituteSubtitle')}</p>
           </div>
 
           <div className="mb-8">
@@ -165,35 +167,35 @@ export default function Institute() {
 
           <Card className="shadow-card bg-card/50 backdrop-blur-sm border-border/50">
             <CardHeader>
-              <CardTitle className="font-heading text-2xl">Institute Panel</CardTitle>
-              <CardDescription>Actions available to approved institutes</CardDescription>
+              <CardTitle className="font-heading text-2xl">{t('institutePanelTitle')}</CardTitle>
+              <CardDescription>{t('institutePanelDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="staff" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 mb-8">
-                  <TabsTrigger value="staff" className="gap-2"><UserPlus className="h-4 w-4" /> Add Staff</TabsTrigger>
-                  <TabsTrigger value="learner" className="gap-2"><UserCheck className="h-4 w-4" /> Add Learner</TabsTrigger>
-                  <TabsTrigger value="template" className="gap-2"><FilePlus2 className="h-4 w-4" /> Add Template</TabsTrigger>
+                  <TabsTrigger value="staff" className="gap-2"><UserPlus className="h-4 w-4" /> {t('tabAddStaff')}</TabsTrigger>
+                  <TabsTrigger value="learner" className="gap-2"><UserCheck className="h-4 w-4" /> {t('tabAddLearner')}</TabsTrigger>
+                  <TabsTrigger value="template" className="gap-2"><FilePlus2 className="h-4 w-4" /> {t('tabAddTemplate')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="staff" className="space-y-6">
                   <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="staffName">Staff Name</Label>
-                      <Input id="staffName" placeholder="e.g., Dr. John Doe" value={staffForm.name} onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })} />
+                      <Label htmlFor="staffName">{t('labelStaffName')}</Label>
+                      <Input id="staffName" placeholder={t('placeholderStaffName')} value={staffForm.name} onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="staffWallet">Staff Wallet Address</Label>
-                      <Input id="staffWallet" placeholder="0x..." value={staffForm.wallet} onChange={(e) => setStaffForm({ ...staffForm, wallet: e.target.value })} />
+                      <Label htmlFor="staffWallet">{t('labelStaffWallet')}</Label>
+                      <Input id="staffWallet" placeholder={t('placeholderStaffWallet')} value={staffForm.wallet} onChange={(e) => setStaffForm({ ...staffForm, wallet: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="staffDesignation">Designation</Label>
-                      <Input id="staffDesignation" placeholder="e.g., Professor" value={staffForm.designation} onChange={(e) => setStaffForm({ ...staffForm, designation: e.target.value })} />
+                      <Label htmlFor="staffDesignation">{t('labelDesignation')}</Label>
+                      <Input id="staffDesignation" placeholder={t('placeholderDesignation')} value={staffForm.designation} onChange={(e) => setStaffForm({ ...staffForm, designation: e.target.value })} />
                     </div>
                   </div>
                   <Button onClick={onAddStaff} disabled={isLoading} className="gap-2">
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Add Staff
+                    {t('btnAddStaff')}
                   </Button>
 
                   {/* List of Staff */}
@@ -201,12 +203,12 @@ export default function Institute() {
                     <table className="w-full text-sm">
                       <thead className="bg-secondary/50">
                         <tr>
-                          <th className="text-left p-3">S.No</th>
-                          <th className="text-left p-3">Staff ID</th>
-                          <th className="text-left p-3">Name</th>
-                          <th className="text-left p-3">Designation</th>
-                          <th className="text-left p-3">Wallet</th>
-                          <th className="text-left p-3">Date & Time</th>
+                          <th className="text-left p-3">{t('tableHeaderSNo')}</th>
+                          <th className="text-left p-3">{t('tableHeaderStaffId')}</th>
+                          <th className="text-left p-3">{t('tableHeaderName')}</th>
+                          <th className="text-left p-3">{t('tableHeaderDesignation')}</th>
+                          <th className="text-left p-3">{t('tableHeaderWallet')}</th>
+                          <th className="text-left p-3">{t('tableHeaderDateTime')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -228,27 +230,27 @@ export default function Institute() {
                 <TabsContent value="learner" className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="learnerWallet">Learner Wallet Address</Label>
-                      <Input id="learnerWallet" placeholder="0x..." value={learnerForm.wallet} onChange={(e) => setLearnerForm({ ...learnerForm, wallet: e.target.value })} />
+                      <Label htmlFor="learnerWallet">{t('labelLearnerWallet')}</Label>
+                      <Input id="learnerWallet" placeholder={t('placeholderStaffWallet')} value={learnerForm.wallet} onChange={(e) => setLearnerForm({ ...learnerForm, wallet: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="learnerAadhar">Aadhar ID</Label>
-                      <Input id="learnerAadhar" placeholder="12-digit Aadhar number" value={learnerForm.aadhar} onChange={(e) => setLearnerForm({ ...learnerForm, aadhar: e.target.value })} />
+                      <Label htmlFor="learnerAadhar">{t('labelAadharId')}</Label>
+                      <Input id="learnerAadhar" placeholder={t('placeholderAadharId')} value={learnerForm.aadhar} onChange={(e) => setLearnerForm({ ...learnerForm, aadhar: e.target.value })} />
                     </div>
                   </div>
                   <Button onClick={onAddLearner} disabled={isLoading} className="gap-2">
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Register Learner
+                    {t('btnRegisterLearner')}
                   </Button>
-                  
+
                   <div className="flex items-start gap-3 p-4 bg-accent/5 border border-accent/20 rounded-lg">
                     <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center text-white text-xs font-bold mt-0.5">
                       🔒
                     </div>
                     <div>
-                      <h4 className="font-semibold text-accent text-sm">Privacy Protection</h4>
+                      <h4 className="font-semibold text-accent text-sm">{t('privacyProtectionTitle')}</h4>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Aadhar ID will be hashed using Keccak-256 algorithm before storing on the blockchain for privacy protection.
+                        {t('privacyProtectionMsg')}
                       </p>
                     </div>
                   </div>
@@ -258,10 +260,10 @@ export default function Institute() {
                     <table className="w-full text-sm">
                       <thead className="bg-secondary/50">
                         <tr>
-                          <th className="text-left p-3">S.No</th>
-                          <th className="text-left p-3">Learner ID</th>
-                          <th className="text-left p-3">Wallet</th>
-                          <th className="text-left p-3">Date & Time</th>
+                          <th className="text-left p-3">{t('tableHeaderSNo')}</th>
+                          <th className="text-left p-3">{t('tableHeaderLearnerId')}</th>
+                          <th className="text-left p-3">{t('tableHeaderWallet')}</th>
+                          <th className="text-left p-3">{t('tableHeaderDateTime')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -281,17 +283,17 @@ export default function Institute() {
                 <TabsContent value="template" className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="templateName">Template Name</Label>
-                      <Input id="templateName" placeholder="e.g., Certified Welder" value={templateForm.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} />
+                      <Label htmlFor="templateName">{t('labelTemplateName')}</Label>
+                      <Input id="templateName" placeholder={t('placeholderTemplateName')} value={templateForm.name} onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="templateDesc">Description</Label>
-                      <Input id="templateDesc" placeholder="Template description" value={templateForm.description} onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })} />
+                      <Label htmlFor="templateDesc">{t('labelTemplateDesc')}</Label>
+                      <Input id="templateDesc" placeholder={t('placeholderTemplateDesc')} value={templateForm.description} onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })} />
                     </div>
                   </div>
                   <Button onClick={onAddTemplate} disabled={isLoading} className="gap-2">
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Create Template
+                    {t('btnCreateTemplate')}
                   </Button>
 
                   {/* List of Templates */}
@@ -299,10 +301,10 @@ export default function Institute() {
                     <table className="w-full text-sm">
                       <thead className="bg-secondary/50">
                         <tr>
-                          <th className="text-left p-3">S.No</th>
-                          <th className="text-left p-3">Template ID</th>
-                          <th className="text-left p-3">Name</th>
-                          <th className="text-left p-3">Date & Time</th>
+                          <th className="text-left p-3">{t('tableHeaderSNo')}</th>
+                          <th className="text-left p-3">{t('tableHeaderTemplateId')}</th>
+                          <th className="text-left p-3">{t('tableHeaderName')}</th>
+                          <th className="text-left p-3">{t('tableHeaderDateTime')}</th>
                         </tr>
                       </thead>
                       <tbody>
