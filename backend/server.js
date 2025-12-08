@@ -59,9 +59,9 @@ function createHash(data) {
 // POST /api/verify-certificate
 app.post('/api/verify-certificate', async (req, res) => {
     try {
-        const { certificateId, learnerName, marks } = req.body;
+        const { certificateId, learnerName, courseName } = req.body;
 
-        console.log('Verification request received:', { certificateId, learnerName, marks });
+        console.log('Verification request received:', { certificateId, learnerName, courseName });
 
         // Validation
         if (!certificateId) {
@@ -71,10 +71,10 @@ app.post('/api/verify-certificate', async (req, res) => {
             });
         }
 
-        if (!learnerName || !marks) {
+        if (!learnerName || !courseName) {
             return res.status(400).json({
                 success: false,
-                error: 'Learner name and marks are required for verification'
+                error: 'Learner name and course name are required for verification'
             });
         }
 
@@ -105,16 +105,19 @@ app.post('/api/verify-certificate', async (req, res) => {
         }
 
         // Create hash from provided data (must match the format used during issuance)
+        // NEW FORMAT: templateName, learnerName, learnerId
         const verificationData = {
+            templateName: courseName,  // User provides expected course name
             learnerName: learnerName,
-            marks: marks
+            learnerId: certData.learnerId.toString()  // From blockchain
         };
         const calculatedHash = createHash(JSON.stringify(verificationData));
 
         console.log('Hash comparison:', {
             calculatedHash,
             storedHash: certData.dataHash,
-            match: calculatedHash === certData.dataHash
+            match: calculatedHash === certData.dataHash,
+            verificationData
         });
 
         // Compare hashes
@@ -124,7 +127,7 @@ app.post('/api/verify-certificate', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 verified: false,
-                error: 'Certificate data does not match. Please verify the learner name and marks are exactly as they were during issuance.'
+                error: 'Certificate data does not match. Please verify the learner name and course name are exactly as they were during issuance.'
             });
         }
 
@@ -146,7 +149,7 @@ app.post('/api/verify-certificate', async (req, res) => {
                 status: certData.revoked ? 'revoked' : 'authentic',
                 dataHash: certData.dataHash,
                 learnerName: learnerName,
-                marks: marks
+                courseName: courseName
             }
         });
 

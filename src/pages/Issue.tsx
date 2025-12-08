@@ -262,11 +262,11 @@ export default function Issue() {
       return;
     }
 
-    // Validate required fields
-    if (!formData.learnerWallet || !formData.learnerId || !formData.learnerName || !formData.templateId || !formData.marks || !formData.issueDate) {
+    // Validate required fields (marks is now optional)
+    if (!formData.learnerWallet || !formData.learnerId || !formData.learnerName || !formData.templateId || !formData.issueDate) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields: Learner Wallet, Learner ID, Learner Name, Template, Marks, and Issue Date",
+        description: "Please fill in all required fields: Learner Wallet, Learner ID, Learner Name, Template, and Issue Date",
         variant: "destructive",
       });
       return;
@@ -304,10 +304,12 @@ export default function Issue() {
       const active = await blockchainService.isTemplateActive(templateIdNum);
       if (!active) throw new Error('Selected template is not active');
 
-      // Create certificate data hash combining learner name, marks (cert ID will be added after issuance)
+      // Create certificate data hash combining template name, learner name, and learner ID
+      // NOTE: Marks are NOT included in the hash (optional field for display only)
       const certificateData = {
+        templateName: selectedTemplate.name,
         learnerName: formData.learnerName,
-        marks: formData.marks
+        learnerId: formData.learnerId
       };
       const dataHash = blockchainService.createHash(JSON.stringify(certificateData));
 
@@ -345,16 +347,12 @@ export default function Issue() {
         const certId = result.certId ? result.certId.toString() : 'Generated';
         setGeneratedCertId(certId);
 
-        // Now create the final hash with the actual certificate ID
-        const finalCertificateData = {
+        // Certificate issued successfully - hash is already stored on blockchain
+        console.log('Certificate issued with hash based on:', {
+          templateName: selectedTemplate.name,
           learnerName: formData.learnerName,
-          certificateId: certId,
-          marks: formData.marks
-        };
-        const finalDataHash = blockchainService.createHash(JSON.stringify(finalCertificateData));
-
-        console.log('Final certificate data with cert ID:', finalCertificateData);
-        console.log('Final hash with cert ID:', finalDataHash);
+          learnerId: formData.learnerId
+        });
 
         setIsSubmitted(true);
 
@@ -541,7 +539,7 @@ export default function Issue() {
                             <div className="grid md:grid-cols-1 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="marks">
-                                  Marks/Score <span className="text-destructive">*</span>
+                                  Marks/Score (Optional - Display Only)
                                 </Label>
                                 <Input
                                   id="marks"
@@ -552,7 +550,7 @@ export default function Issue() {
                                   disabled={!isAuthorized}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Marks/score will be hashed along with name and cert ID.
+                                  Marks are optional and for display only. They are NOT stored on the blockchain.
                                 </p>
                               </div>
                             </div>
@@ -564,7 +562,7 @@ export default function Issue() {
                               <div>
                                 <h4 className="font-semibold text-accent text-sm">Privacy Protection</h4>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Learner name and marks/score will be cryptographically hashed and stored on the blockchain. Only the hash will be stored for verification purposes.
+                                  Template name, learner name, and learner ID will be cryptographically hashed and stored on the blockchain. Only the hash will be stored for verification purposes.
                                 </p>
                               </div>
                             </div>
@@ -708,7 +706,7 @@ export default function Issue() {
                         className="gap-2 sm:ml-auto"
                         size="lg"
                         onClick={handleGenerateCertificate}
-                        disabled={isLoading || !isAuthorized || !formData.learnerWallet || !formData.learnerId || !formData.templateId || !formData.issueDate || !formData.marks}
+                        disabled={isLoading || !isAuthorized || !formData.learnerWallet || !formData.learnerId || !formData.templateId || !formData.issueDate}
                       >
                         {isLoading ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

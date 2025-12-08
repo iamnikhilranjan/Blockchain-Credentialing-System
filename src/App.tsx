@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThirdwebProvider } from "thirdweb/react";
 import { BlockchainProvider } from "@/contexts/BlockchainContext";
-
 import Index from "./pages/Index";
 import Verify from "./pages/Verify";
 import Certificates from "./pages/Certificates";
