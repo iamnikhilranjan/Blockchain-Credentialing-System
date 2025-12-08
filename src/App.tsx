@@ -5,12 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThirdwebProvider } from "thirdweb/react";
 import { BlockchainProvider } from "@/contexts/BlockchainContext";
+import { ThirdwebProvider } from "thirdweb/react";
 import Index from "./pages/Index";
 import Verify from "./pages/Verify";
 import Certificates from "./pages/Certificates";
 import Issue from "./pages/Issue";
 import Roles from "./pages/Roles";
 import Institute from "./pages/Institute";
+import DigiLocker from "./pages/DigiLocker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,7 @@ const App = () => (
               <Route path="/issue" element={<Issue />} />
               <Route path="/institute" element={<Institute />} />
               <Route path="/roles" element={<Roles />} />
+              <Route path="/digilocker" element={<DigiLocker />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { createRoot } from "react-dom/client";
 
 export default function Certificates() {
   const { address } = useBlockchain();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [certificates, setCertificates] = useState<Array<{ id: number; templateId: number; templateName?: string; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; dataHash?: string; txHash: string }>>([]);
@@ -237,9 +239,9 @@ export default function Certificates() {
                       Download Certificate
                     </Button>
                     <Button
-                      variant="outline"
                       size="sm"
-                      className="w-full gap-2 border-accent/30 hover:border-accent"
+                      className="w-full gap-2 bg-[#2B3890] hover:bg-[#1a235e] text-white border-0"
+                      onClick={() => navigate('/digilocker', { state: { certificate: cert } })}
                     >
                       <ExternalLink className="h-3 w-3" />
                       Add to DigiLocker
