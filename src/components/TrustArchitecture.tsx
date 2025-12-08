@@ -26,7 +26,7 @@ export const TrustArchitecture: React.FC = () => {
               <div className="bg-background/50 rounded-xl p-4 border border-accent/20">
                 <div className="flex items-center mb-2">
                   <Shield className="h-5 w-5 text-blue-500 mr-2" />
-                  <span className="font-semibold text-sm text-blue-700 dark:text-blue-300">NVCET Managers</span>
+                  <span className="font-semibold text-sm text-blue-700 dark:text-blue-300">NCVET Managers</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Institution management, approval workflows, system oversight</p>
               </div>
@@ -98,7 +98,7 @@ export const TrustArchitecture: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12">
-              {/* Level 1: NVCET Managers */}
+              {/* Level 1: NCVET Managers */}
               <div className="relative">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800/30 shadow-lg">
                   <div className="flex flex-col items-center text-center space-y-4">
@@ -107,7 +107,7 @@ export const TrustArchitecture: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                        NVCET Managers
+                        NCVET Managers
                       </h4>
                       <p className="text-sm text-blue-700 dark:text-blue-300">
                         Top-level administrators who approve and manage institutions

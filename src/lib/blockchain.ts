@@ -282,7 +282,7 @@ const CERTIFICATES_ABI = [
 ];
 
 export interface BlockchainState {
-  provider: ethers.providers.Web3Provider | null;
+  provider: ethers.providers.JsonRpcProvider | null;
   signer: ethers.Signer | null;
   contracts: {
     certAgency: ethers.Contract | null;
@@ -317,15 +317,19 @@ class BlockchainService {
   private ensureReadContracts(): void {
     try {
       if (!this.state.provider) {
-        if (typeof (window as any)?.ethereum !== 'undefined') {
+        // Prioritize RPC URL for consistent read-only access (verification)
+        // Only use window.ethereum if explicit wallet connection is requested (handled in connectWallet) or RPC is missing
+        const rpcUrl = RPC_URL || 'https://ethereum-sepolia.publicnode.com';
+        if (rpcUrl) {
+          console.log('Using RPC URL for provider:', rpcUrl);
+          this.state.provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+          // If purely using RPC, we're not "connected" in terms of wallet, but we are connected to network
+        } else if (typeof (window as any)?.ethereum !== 'undefined') {
           this.state.provider = new ethers.providers.Web3Provider((window as any).ethereum);
-        } else if (RPC_URL) {
-          // Use configured RPC URL for read-only operations
-          this.state.provider = new ethers.providers.JsonRpcProvider(RPC_URL);
         } else {
           // Fallback to default provider (may not work in production)
           console.warn('No RPC URL configured and no MetaMask detected. Using default provider which may not work in production.');
-          this.state.provider = (ethers.getDefaultProvider() as unknown) as ethers.providers.Web3Provider;
+          this.state.provider = (ethers.getDefaultProvider() as unknown) as ethers.providers.JsonRpcProvider;
         }
       }
 
@@ -884,14 +888,20 @@ class BlockchainService {
   // Test blockchain connectivity
   async testConnectivity(): Promise<{ connected: boolean; error?: string; networkInfo?: any; networkMismatch?: boolean }> {
     try {
+      console.log('Testing connectivity...');
       this.ensureReadContracts();
       if (!this.state.provider) {
+        console.error('No provider available');
         return { connected: false, error: 'No provider available' };
       }
 
       // Test basic connectivity
+      console.log('Getting network...');
       const network = await this.state.provider.getNetwork();
+      console.log('Network:', network);
+      console.log('Getting block number...');
       const blockNumber = await this.state.provider.getBlockNumber();
+      console.log('Block number:', blockNumber);
 
       // Check if we're on a supported network
       const supportedChainIds = Object.values(SUPPORTED_NETWORKS).map(n => n.chainId);

@@ -29,23 +29,52 @@ export default function Verify() {
   }>({});
   const html5QrCodeRef = useRef<any>(null);
   const fetchingDetailsRef = useRef<boolean>(false);
+  const scanProcessingRef = useRef<boolean>(false);
+
+  // Aadhaar verification states
+  const [aadhaarInput, setAadhaarInput] = useState("");
+  const [aadhaarVerificationResult, setAadhaarVerificationResult] = useState<"verified" | "unverified" | null>(null);
+  const [aadhaarVerifying, setAadhaarVerifying] = useState(false);
 
   // Cleanup function to properly stop the camera
-  const stopCamera = async () => {
-    if (html5QrCodeRef.current && isScanning) {
+  const stopCamera = useCallback(async () => {
+    console.log('stopCamera called, isScanning:', isScanning, 'html5QrCodeRef.current:', !!html5QrCodeRef.current);
+
+    if (html5QrCodeRef.current) {
       try {
+        // Try to stop the scanner - it will throw if not running, which is fine
         await html5QrCodeRef.current.stop();
-        await html5QrCodeRef.current.clear();
-        html5QrCodeRef.current = null;
-      } catch (error) {
-        console.warn('Error stopping camera:', error);
+        console.log('Scanner stopped successfully');
+      } catch (error: any) {
+        // Ignore errors about scanner not running
+        if (!error?.message?.includes('not started')) {
+          console.warn('Error stopping camera:', error);
+        }
       }
+
+      try {
+        // Always clear the scanner UI
+        await html5QrCodeRef.current.clear();
+        console.log('Scanner cleared successfully');
+      } catch (error) {
+        console.warn('Error clearing scanner:', error);
+      }
+
+      // Always nullify the reference
+      html5QrCodeRef.current = null;
     }
+
+    // Reset all state flags
     setIsScanning(false);
+    scanProcessingRef.current = false;
+
+    // Clear the scanner container
     if (scannerRef.current) {
       scannerRef.current.innerHTML = '';
     }
-  };
+
+    console.log('stopCamera completed');
+  }, [isScanning]);
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -59,22 +88,22 @@ export default function Verify() {
   // Function to fetch additional details for verification result
   const fetchVerificationDetails = useCallback(async (result: any) => {
     if (!result || (!result.instituteId && !result.templateId && !result.staffId)) return;
-    
+
     // Prevent duplicate calls
     if (fetchingDetailsRef.current) {
       console.log('Details already being fetched, skipping...');
       return;
     }
-    
+
     fetchingDetailsRef.current = true;
     setDetailsLoading(true);
-    
+
     // Don't reset fetchedDetails immediately to prevent flickering
     // setFetchedDetails({});
-    
+
     try {
       const promises = [];
-      
+
       // Fetch institute details
       if (result.instituteId) {
         promises.push(
@@ -83,7 +112,7 @@ export default function Verify() {
             .catch(() => ({ type: 'institute', data: null }))
         );
       }
-      
+
       // Fetch template details
       if (result.templateId) {
         promises.push(
@@ -92,7 +121,7 @@ export default function Verify() {
             .catch(() => ({ type: 'template', data: null }))
         );
       }
-      
+
       // Fetch staff details
       if (result.staffId) {
         promises.push(
@@ -101,9 +130,9 @@ export default function Verify() {
             .catch(() => ({ type: 'staff', data: null }))
         );
       }
-      
+
       const results = await Promise.all(promises);
-      
+
       const newDetails: any = {};
       results.forEach(({ type, data }) => {
         if (data) {
@@ -120,7 +149,7 @@ export default function Verify() {
           }
         }
       });
-      
+
       setFetchedDetails(newDetails);
     } catch (error) {
       console.error('Error fetching verification details:', error);
@@ -169,28 +198,28 @@ export default function Verify() {
       console.log('Is QR Scan:', isQRScan);
       console.log('Learner Name:', learnerName);
       console.log('Marks:', marks);
-      
+
       // Test blockchain connectivity first
       const connectivity = await blockchainService.testConnectivity();
       console.log('Blockchain connectivity:', connectivity);
-      
+
       if (!connectivity.connected) {
         throw new Error(`Blockchain connection failed: ${connectivity.error}`);
       }
-      
+
       // Check for network mismatch
       if (connectivity.networkMismatch) {
         const supportedNetworks = 'Sepolia (11155111) or Polygon Amoy (80002)';
         throw new Error(`Wrong network detected. Your contracts are deployed on ${supportedNetworks}, but you're connected to ${connectivity.networkInfo?.name} (${connectivity.networkInfo?.chainId}). Please configure the correct RPC URL.`);
       }
-      
+
       // Get certificate data from blockchain
       const cert = await blockchainService.getCertificateData(parseInt(idValue, 10));
       console.log('Certificate data from blockchain:', cert);
-      
+
       if (cert.exists) {
         let hashMatches = true; // Default to true for QR scan
-        
+
         // Only perform hash verification for manual verification (not QR scan)
         if (!isQRScan && learnerName && marks) {
           // Calculate hash from provided data (learner name, marks) - matching the stored hash structure
@@ -199,7 +228,7 @@ export default function Verify() {
             marks: marks
           };
           const calculatedHash = blockchainService.createHash(JSON.stringify(verificationData));
-          
+
           console.log('=== MANUAL VERIFICATION DEBUG ===');
           console.log('Input data:', { certificateId: idValue, learnerName, marks });
           console.log('Verification data being hashed:', verificationData);
@@ -208,7 +237,7 @@ export default function Verify() {
           console.log('Stored hash from blockchain:', cert.dataHash);
           console.log('Hash match:', calculatedHash === cert.dataHash);
           console.log('=== END MANUAL VERIFICATION DEBUG ===');
-          
+
           // Compare with stored hash
           hashMatches = calculatedHash === cert.dataHash;
         } else if (isQRScan) {
@@ -218,7 +247,7 @@ export default function Verify() {
           console.log('Certificate exists:', cert.exists);
           console.log('=== END QR SCAN VERIFICATION ===');
         }
-        
+
         if (hashMatches) {
           const result = {
             status: cert.revoked ? "revoked" : "authentic",
@@ -234,10 +263,10 @@ export default function Verify() {
             learnerName: learnerName,
           };
           setVerificationResult(result);
-          
+
           // Fetch additional details
           await fetchVerificationDetails(result);
-          
+
           toast({
             title: cert.revoked ? "Certificate Revoked" : "Certificate Verified! ✅",
             description: cert.revoked ? "This certificate has been revoked" : "Certificate verified successfully",
@@ -246,15 +275,15 @@ export default function Verify() {
           return;
         } else {
           // Hash doesn't match - certificate is invalid
-          setVerificationResult({ 
-            status: "invalid", 
-            certificateId: idValue, 
-            error: "Certificate data does not match. Please verify the learner name and marks/score." 
+          setVerificationResult({
+            status: "invalid",
+            certificateId: idValue,
+            error: "Certificate data does not match. Please verify the learner name and marks/score."
           });
-          toast({ 
-            title: "Verification Failed", 
-            description: "Certificate data does not match. Please check the provided information.", 
-            variant: "destructive" 
+          toast({
+            title: "Verification Failed",
+            description: "Certificate data does not match. Please check the provided information.",
+            variant: "destructive"
           });
           return;
         }
@@ -279,10 +308,10 @@ export default function Verify() {
           grade: marks || "Not provided",
         };
         setVerificationResult(verificationResult);
-        
+
         // Fetch additional details
         await fetchVerificationDetails(verificationResult);
-        
+
         toast({ title: "Certificate Verified! ✅", description: "Certificate is authentic and valid" });
       } else {
         setVerificationResult({ status: "invalid", certificateId: idValue, error: "Certificate not found or verification failed" });
@@ -306,6 +335,89 @@ export default function Verify() {
     }
   };
 
+  const handleAadhaarVerify = async () => {
+    // Validate Aadhaar input
+    if (!aadhaarInput.trim()) {
+      toast({
+        title: "Aadhaar Required",
+        description: "Please enter the Aadhaar number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate Aadhaar format (12 digits)
+    if (!/^\d{12}$/.test(aadhaarInput.trim())) {
+      toast({
+        title: "Invalid Aadhaar",
+        description: "Please enter a valid 12-digit Aadhaar number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if we have a learner ID from verification result
+    if (!verificationResult?.learnerId) {
+      toast({
+        title: "No Learner ID",
+        description: "Please verify a certificate first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAadhaarVerifying(true);
+    setAadhaarVerificationResult(null);
+
+    try {
+      console.log('=== AADHAAR VERIFICATION START ===');
+      console.log('Aadhaar input:', aadhaarInput);
+      console.log('Learner ID:', verificationResult.learnerId);
+
+      // Hash the Aadhaar number using the same algorithm as during registration
+      const aadhaarHash = blockchainService.createHash(aadhaarInput.trim());
+      console.log('Calculated Aadhaar hash:', aadhaarHash);
+
+      // Fetch learner details from blockchain
+      const learnerDetails = await blockchainService.getLearnerById(parseInt(verificationResult.learnerId));
+
+      if (!learnerDetails) {
+        throw new Error('Learner details not found on blockchain');
+      }
+
+      console.log('Learner identity hash from blockchain:', learnerDetails.identityHash);
+      console.log('Hash match:', aadhaarHash === learnerDetails.identityHash);
+      console.log('=== AADHAAR VERIFICATION END ===');
+
+      // Compare the hashes
+      if (aadhaarHash === learnerDetails.identityHash) {
+        setAadhaarVerificationResult("verified");
+        toast({
+          title: "Aadhaar Verified ✅",
+          description: "The Aadhaar number matches the certificate holder's identity",
+        });
+      } else {
+        setAadhaarVerificationResult("unverified");
+        toast({
+          title: "Aadhaar Unverified ❌",
+          description: "The Aadhaar number does not match the certificate holder's identity",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error verifying Aadhaar:', error);
+      toast({
+        title: "Verification Error",
+        description: error.message || "An error occurred while verifying Aadhaar",
+        variant: "destructive",
+      });
+      setAadhaarVerificationResult(null);
+    } finally {
+      setAadhaarVerifying(false);
+    }
+  };
+
+
   const handleQRScan = async () => {
     try {
       // Check if running in secure context (HTTPS required for camera access)
@@ -321,51 +433,71 @@ export default function Verify() {
       const { Html5Qrcode } = await import('html5-qrcode');
       const scannerId = 'qr-scanner';
       if (!scannerRef.current) return;
-      
+
       // Clean up any existing scanner
       await stopCamera();
-      
+
       const el = document.createElement('div');
       el.id = scannerId;
       el.className = 'w-full max-w-sm aspect-square rounded-lg overflow-hidden';
       scannerRef.current.innerHTML = '';
       scannerRef.current.appendChild(el);
       setIsScanning(true);
-      
+      scanProcessingRef.current = false; // Reset processing flag
+
       const html5QrCode = new Html5Qrcode(scannerId);
       html5QrCodeRef.current = html5QrCode;
-      
+
       await html5QrCode.start(
         { facingMode: 'environment' },
-        { 
-          fps: 10, 
+        {
+          fps: 10,
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0
         },
-        (decodedText: string) => {
-          // Stop scanning on success
-          stopCamera();
+        async (decodedText: string) => {
+          // Prevent multiple callbacks for the same scan
+          if (scanProcessingRef.current) {
+            console.log('Scan already processing, ignoring...');
+            return;
+          }
+          scanProcessingRef.current = true;
+
+          console.log('QR Code detected:', decodedText);
+
+          // Stop the scanner immediately to prevent multiple scans
+          try {
+            if (html5QrCodeRef.current) {
+              await html5QrCodeRef.current.stop();
+              setIsScanning(false);
+              console.log('Scanner stopped after QR detection');
+            }
+          } catch (error) {
+            console.warn('Error stopping scanner after detection:', error);
+          }
+
           // Expect link like /verify?certId=123
           try {
             const url = new URL(decodedText, window.location.origin);
             const id = url.searchParams.get('certId') || decodedText;
             setCertificateId(id);
-            handleVerify(id, true); // Pass isQRScan: true
-            // Don't open new tab - just verify in current tab
+            await handleVerify(id, true); // Pass isQRScan: true
           } catch (_) {
             setCertificateId(decodedText);
-            handleVerify(decodedText, true); // Pass isQRScan: true
+            await handleVerify(decodedText, true); // Pass isQRScan: true
           }
+
+          // Note: scanProcessingRef will be reset when user clicks "Scan Another" or starts a new scan
         },
         (errorMessage: string) => {
           // Handle scan errors silently (this is called frequently during scanning)
-          console.debug('QR scan error:', errorMessage);
+          // console.debug('QR scan error:', errorMessage);
         }
       );
     } catch (e: any) {
       await stopCamera();
       let errorMessage = 'Unable to start camera';
-      
+
       if (e?.message) {
         if (e.message.includes('Permission denied') || e.message.includes('NotAllowedError')) {
           errorMessage = 'Camera permission denied. Please allow camera access and try again.';
@@ -379,11 +511,11 @@ export default function Verify() {
           errorMessage = e.message;
         }
       }
-      
-      toast({ 
-        title: 'Camera Error', 
-        description: errorMessage, 
-        variant: 'destructive' 
+
+      toast({
+        title: 'Camera Error',
+        description: errorMessage,
+        variant: 'destructive'
       });
     }
   };
@@ -391,7 +523,7 @@ export default function Verify() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
-      
+
       <main className="flex-1 py-12 blockchain-grid">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="text-center mb-12 space-y-4">
@@ -439,7 +571,7 @@ export default function Verify() {
                         </>
                       )}
                     </div>
-                    
+
                     {!isScanning && (
                       <div className="w-64 h-64 border-4 border-dashed border-accent/50 rounded-2xl flex items-center justify-center bg-accent/5">
                         <QrCode className="h-32 w-32 text-accent/60" />
@@ -447,10 +579,10 @@ export default function Verify() {
                     )}
                     <div ref={scannerRef} className="w-full flex items-center justify-center" />
                     <div className="flex gap-3">
-                      <Button 
-                        variant="neon" 
-                        size="lg" 
-                        onClick={handleQRScan} 
+                      <Button
+                        variant="neon"
+                        size="lg"
+                        onClick={handleQRScan}
                         disabled={isScanning || !blockchainService.isSecureContext()}
                       >
                         {isScanning ? 'Scanning...' : 'Start QR Scan'}
@@ -471,19 +603,19 @@ export default function Verify() {
 
                 <TabsContent value="manual" className="space-y-6">
                   <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="certId">Certificate ID <span className="text-destructive">*</span></Label>
-          <Input
-            id="certId"
-            placeholder="Enter certificate ID (e.g., 123)"
-            value={certificateId}
-            onChange={(e) => setCertificateId(e.target.value)}
-            className="bg-background/50"
-          />
-          <p className="text-xs text-muted-foreground">
-            Enter the certificate ID from the blockchain
-          </p>
-        </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="certId">Certificate ID <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="certId"
+                        placeholder="Enter certificate ID (e.g., 123)"
+                        value={certificateId}
+                        onChange={(e) => setCertificateId(e.target.value)}
+                        className="bg-background/50"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the certificate ID from the blockchain
+                      </p>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="learnerName">Learner Name <span className="text-destructive">*</span></Label>
                       <Input
@@ -510,9 +642,9 @@ export default function Verify() {
                         Enter the exact marks/score as it appears on the certificate
                       </p>
                     </div>
-                    <Button 
-                      variant="hero" 
-                      size="lg" 
+                    <Button
+                      variant="hero"
+                      size="lg"
                       className="w-full"
                       onClick={() => {
                         console.log('Button clicked - Form values:', { certificateId, learnerName, marks });
@@ -547,7 +679,7 @@ export default function Verify() {
                   <div className="border-t border-border/50 pt-4">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-heading text-xl font-semibold">Verification Result</h3>
-                      <Badge 
+                      <Badge
                         variant={verificationResult.status === "authentic" ? "default" : "destructive"}
                         className={verificationResult.status === "authentic" ? "bg-accent text-accent-foreground" : ""}
                       >
@@ -556,9 +688,9 @@ export default function Verify() {
                         ) : (
                           <XCircle className="h-4 w-4 mr-2" />
                         )}
-                        {verificationResult.status === "authentic" ? "Authentic" : 
-                         verificationResult.status === "revoked" ? "Revoked" :
-                         verificationResult.status === "invalid" ? "Invalid" : "Error"}
+                        {verificationResult.status === "authentic" ? "Authentic" :
+                          verificationResult.status === "revoked" ? "Revoked" :
+                            verificationResult.status === "invalid" ? "Invalid" : "Error"}
                       </Badge>
                     </div>
 
@@ -667,35 +799,119 @@ export default function Verify() {
 
                       </CardContent>
                     </Card>
-                    
+
+                    {/* Aadhaar Verification Section - Only show for authentic or revoked certificates */}
+                    {(verificationResult.status === "authentic" || verificationResult.status === "revoked") && (
+                      <Card className="bg-background/50 border-accent/20 mt-4">
+                        <CardHeader>
+                          <CardTitle className="font-heading text-lg">Verify Aadhaar Identity</CardTitle>
+                          <CardDescription>
+                            Enter the Aadhaar number to verify the certificate holder's identity
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="aadhaarInput">Aadhaar Number</Label>
+                            <Input
+                              id="aadhaarInput"
+                              placeholder="Enter 12-digit Aadhaar number"
+                              value={aadhaarInput}
+                              onChange={(e) => setAadhaarInput(e.target.value)}
+                              className="bg-background/50"
+                              maxLength={12}
+                              disabled={aadhaarVerifying}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              The Aadhaar number will be hashed and compared with the blockchain record
+                            </p>
+                          </div>
+
+                          <Button
+                            variant="hero"
+                            onClick={handleAadhaarVerify}
+                            disabled={aadhaarVerifying || !aadhaarInput.trim()}
+                            className="w-full"
+                          >
+                            {aadhaarVerifying ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Verifying Aadhaar...
+                              </>
+                            ) : (
+                              'Verify Aadhaar'
+                            )}
+                          </Button>
+
+                          {/* Aadhaar Verification Result */}
+                          {aadhaarVerificationResult && (
+                            <div className="mt-4 p-4 rounded-lg border animate-in fade-in slide-in-from-bottom-2"
+                              style={{
+                                backgroundColor: aadhaarVerificationResult === "verified" ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)",
+                                borderColor: aadhaarVerificationResult === "verified" ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"
+                              }}
+                            >
+                              <div className="flex items-center gap-3">
+                                {aadhaarVerificationResult === "verified" ? (
+                                  <>
+                                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                    <div>
+                                      <h4 className="font-semibold text-green-700">Aadhaar Verified</h4>
+                                      <p className="text-sm text-green-600">
+                                        The Aadhaar number matches the certificate holder's identity
+                                      </p>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="h-6 w-6 text-red-600" />
+                                    <div>
+                                      <h4 className="font-semibold text-red-700">Aadhaar Unverified</h4>
+                                      <p className="text-sm text-red-600">
+                                        The Aadhaar number does not match the certificate holder's identity
+                                      </p>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Scan Another Button */}
                     <div className="flex justify-center pt-2">
-                      <Button 
-                        variant="outline" 
-                      onClick={() => {
-                        setVerificationResult(null);
-                        setCertificateId("");
-                        setLearnerName("");
-                        setMarks("");
-                        setFetchedDetails({});
-                        setVerificationKey(prev => prev + 1);
-                        fetchingDetailsRef.current = false;
-                      }}
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setVerificationResult(null);
+                          setCertificateId("");
+                          setLearnerName("");
+                          setMarks("");
+                          setFetchedDetails({});
+                          setVerificationKey(prev => prev + 1);
+                          fetchingDetailsRef.current = false;
+                          scanProcessingRef.current = false; // Reset scan processing flag
+                          // Reset Aadhaar verification state
+                          setAadhaarInput("");
+                          setAadhaarVerificationResult(null);
+                        }}
                         className="gap-2"
                       >
                         <QrCode className="h-4 w-4" />
                         Scan Another Certificate
                       </Button>
                     </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+                  </div >
+                </div >
+              )
+              }
+            </CardContent >
+          </Card >
+        </div >
+      </main >
 
       <Footer />
-    </div>
+    </div >
   );
 }
