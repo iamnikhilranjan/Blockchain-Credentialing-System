@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
+import { ConnectButton } from 'thirdweb/react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Wallet, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useBlockchain } from '@/contexts/BlockchainContext';
+import { thirdwebClient, wallets, customTheme } from '@/lib/thirdweb';
+import { useActiveAccount } from 'thirdweb/react';
 
 interface WalletConnectionProps {
   showDetails?: boolean;
@@ -11,15 +13,17 @@ interface WalletConnectionProps {
 }
 
 export function WalletConnection({ showDetails = true, className = "" }: WalletConnectionProps) {
-  const { 
-    isConnected, 
-    isAuthorized, 
-    address, 
-    userRole, 
-    connectWallet, 
-    disconnect, 
-    isLoading 
+  const {
+    isConnected,
+    isAuthorized,
+    address,
+    userRole,
+    connectWallet,
+    disconnect
   } = useBlockchain();
+
+  // Get the active account from Thirdweb
+  const activeAccount = useActiveAccount();
 
   const getRoleDisplay = (role: string | null) => {
     switch (role) {
@@ -40,21 +44,22 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
+  // Sync Thirdweb connection with blockchain context
+  useEffect(() => {
+    if (activeAccount?.address && !isConnected) {
+      // Thirdweb connected but blockchain context not connected yet
+      connectWallet();
+    } else if (!activeAccount && isConnected) {
+      // Thirdweb disconnected but blockchain context still connected
+      disconnect();
+    }
+  }, [activeAccount, isConnected]);
+
   if (!showDetails && !isConnected) {
     return (
-      <Button
-        onClick={connectWallet}
-        disabled={isLoading}
-        variant="neon"
-        className={`gap-2 ${className}`}
-      >
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Wallet className="h-4 w-4" />
-        )}
-        {isLoading ? 'Connecting...' : 'Connect Wallet'}
-      </Button>
+      <div className={className}>
+        <ConnectButton client={thirdwebClient} wallets={wallets} theme={customTheme} />
+      </div>
     );
   }
 
@@ -65,14 +70,7 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
           <CheckCircle className="h-3 w-3" />
           {formatAddress(address!)}
         </Badge>
-        <Button
-          onClick={disconnect}
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          Disconnect
-        </Button>
+        <ConnectButton client={thirdwebClient} wallets={wallets} theme={customTheme} />
       </div>
     );
   }
@@ -83,41 +81,27 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-heading text-lg font-semibold">Wallet Status</h3>
-            {isConnected ? (
-              <Button
-                onClick={disconnect}
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Disconnect
-              </Button>
-            ) : null}
+            {isConnected && (
+              <div className="scale-90">
+                <ConnectButton client={thirdwebClient} wallets={wallets} />
+              </div>
+            )}
           </div>
 
           {!isConnected ? (
             <div className="text-center space-y-4">
               <div className="w-16 h-16 mx-auto bg-accent/10 rounded-full flex items-center justify-center">
-                <Wallet className="h-8 w-8 text-accent" />
+                <svg className="h-8 w-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
               </div>
               <div>
                 <p className="text-muted-foreground mb-4">
                   Connect your wallet to access blockchain features
                 </p>
-                <Button
-                  onClick={connectWallet}
-                  disabled={isLoading}
-                  variant="neon"
-                  size="lg"
-                  className="gap-2"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Wallet className="h-4 w-4" />
-                  )}
-                  {isLoading ? 'Connecting...' : 'Connect Wallet'}
-                </Button>
+                <div className="flex justify-center">
+                  <ConnectButton client={thirdwebClient} wallets={wallets} theme={customTheme} />
+                </div>
               </div>
             </div>
           ) : (
@@ -146,7 +130,7 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
                   </span>
                 </div>
                 {userRole && (
-                  <Badge 
+                  <Badge
                     variant={getRoleDisplay(userRole).variant}
                     className={getRoleDisplay(userRole).color}
                   >
@@ -162,7 +146,7 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
                   <div className="text-sm">
                     <p className="font-medium text-yellow-400 mb-1">Limited Access</p>
                     <p className="text-yellow-400/80">
-                      Your wallet is not registered for issuing or managing certificates. 
+                      Your wallet is not registered for issuing or managing certificates.
                       Contact an administrator to get access.
                     </p>
                   </div>

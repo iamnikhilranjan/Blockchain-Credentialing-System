@@ -1076,7 +1076,7 @@ class BlockchainService {
     walletAddress: string,
     fromBlock = 0,
     toBlock?: number
-  ): Promise<Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; txHash: string }>> {
+  ): Promise<Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; dataHash?: string; txHash: string }>> {
     if (!this.state.provider) this.ensureReadContracts();
     if (!this.state.provider) throw new Error('Not connected to provider');
     const learnerId = await this.getLearnerIdByWallet(walletAddress);
@@ -1095,19 +1095,21 @@ class BlockchainService {
     const matches = logs
       .map((l) => ({ parsed: iface.parseLog(l), log: l }))
       .filter((d: any) => Number(d.parsed.args.learnerId.toString()) === learnerId);
-    const results: Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; txHash: string }> = [];
+    const results: Array<{ certId: number; templateId: number; templateName?: string; instituteId?: number; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; dataHash?: string; txHash: string }> = [];
     for (const item of matches) {
       const block = await this.state.provider!.getBlock(item.log.blockNumber);
-      // also read revoked flag from contract storage
+      // also read revoked flag and dataHash from contract storage
       let revoked = false;
       let validUntil: number | undefined = undefined;
       let instituteId: number | undefined = undefined;
+      let dataHash: string | undefined = undefined;
       try {
         if (!this.state.contracts.certificates) this.ensureReadContracts();
         const certData = await this.state.contracts.certificates!.certificates(Number(item.parsed.args.certId.toString()));
         revoked = Boolean(certData.revoked);
         validUntil = Number(certData.validUntil?.toString?.() ?? certData.validUntil ?? 0);
         instituteId = Number(certData.instituteId?.toString?.() ?? certData.instituteId ?? 0) || undefined;
+        dataHash = String(certData.dataHash);
       } catch (_) { }
       let templateName: string | undefined = undefined;
       try {
@@ -1135,6 +1137,7 @@ class BlockchainService {
         issuedAt: Number(block.timestamp),
         validUntil,
         revoked,
+        dataHash,
         txHash: item.log.transactionHash
       });
     }

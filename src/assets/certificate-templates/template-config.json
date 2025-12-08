@@ -1,0 +1,95 @@
+{
+    "templates": [
+        {
+            "id": "template-1",
+            "name": "Standard Certificate",
+            "description": "Official certificate template with institutional headers",
+            "imagePath": "/src/assets/certificate-templates/template-1.png",
+            "fields": {
+                "headers": {
+                    "satya": {
+                        "x": 50,
+                        "y": 30,
+                        "width": 120,
+                        "height": 60
+                    },
+                    "ncvet": {
+                        "x": 350,
+                        "y": 30,
+                        "width": 100,
+                        "height": 60
+                    },
+                    "azadi": {
+                        "x": 650,
+                        "y": 30,
+                        "width": 120,
+                        "height": 60
+                    }
+                },
+                "certificateId": {
+                    "x": 400,
+                    "y": 150,
+                    "fontSize": 16,
+                    "fontFamily": "Arial",
+                    "color": "#333333",
+                    "align": "center"
+                },
+                "learnerName": {
+                    "x": 400,
+                    "y": 300,
+                    "fontSize": 32,
+                    "fontFamily": "Arial",
+                    "fontWeight": "bold",
+                    "color": "#000000",
+                    "align": "center"
+                },
+                "courseName": {
+                    "x": 400,
+                    "y": 360,
+                    "fontSize": 20,
+                    "fontFamily": "Arial",
+                    "color": "#333333",
+                    "align": "center"
+                },
+                "marks": {
+                    "x": 400,
+                    "y": 420,
+                    "fontSize": 24,
+                    "fontFamily": "Arial",
+                    "fontWeight": "bold",
+                    "color": "#1a73e8",
+                    "align": "center"
+                },
+                "issueDate": {
+                    "x": 200,
+                    "y": 520,
+                    "fontSize": 14,
+                    "fontFamily": "Arial",
+                    "color": "#666666",
+                    "align": "left"
+                },
+                "expiryDate": {
+                    "x": 600,
+                    "y": 520,
+                    "fontSize": 14,
+                    "fontFamily": "Arial",
+                    "color": "#666666",
+                    "align": "right"
+                },
+                "instituteName": {
+                    "x": 400,
+                    "y": 480,
+                    "fontSize": 16,
+                    "fontFamily": "Arial",
+                    "color": "#666666",
+                    "align": "center"
+                }
+            },
+            "qrCode": {
+                "x": 680,
+                "y": 480,
+                "size": 80
+            }
+        }
+    ]
+}
