@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,13 +11,13 @@ export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { isConnected, isAuthorized, userRole } = useBlockchain();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Filter navigation items based on user role and authorization
   const getNavItems = () => {
     const baseItems = [
       { name: "Home", path: "/" },
       { name: "Verify Certificate", path: "/verify" },
-      { name: "FAQ", path: "/#faq" },
     ];
 
     if (isConnected) {
@@ -39,18 +39,40 @@ export const Navigation = () => {
       }
     }
 
+    // Always add FAQ as the last item
+    baseItems.push({ name: "FAQ", path: "/#faq" });
+
     return baseItems;
   };
 
   const navItems = getNavItems();
   const isActive = (path: string) => location.pathname === path;
 
+  // Handle FAQ scrolling after navigation
+  useEffect(() => {
+    if (location.hash === "#faq") {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const faqSection = document.getElementById("faq");
+        if (faqSection) {
+          faqSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
+  }, [location]);
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
     if (path === "/#faq") {
       e.preventDefault();
-      const faqSection = document.getElementById("faq");
-      if (faqSection) {
-        faqSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (location.pathname === "/") {
+        // Already on home page, just scroll
+        const faqSection = document.getElementById("faq");
+        if (faqSection) {
+          faqSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } else {
+        // Navigate to home page with hash
+        navigate("/#faq");
       }
     }
   };

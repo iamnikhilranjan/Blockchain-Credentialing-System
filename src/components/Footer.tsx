@@ -1,8 +1,10 @@
 import { Shield, Github, Twitter, Linkedin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const footerLinks = {
     product: [
@@ -14,12 +16,29 @@ export const Footer = () => {
       { name: "About Us", path: "/about" },
       { name: "Contact", path: "/contact" },
       { name: "Support", path: "/support" },
+      { name: "FAQ", path: "/#faq" },
     ],
     legal: [
       { name: "Privacy Policy", path: "/privacy" },
       { name: "Terms of Service", path: "/terms" },
       { name: "Security", path: "/security" },
     ],
+  };
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    if (path === "/#faq") {
+      e.preventDefault();
+      if (location.pathname === "/") {
+        // Already on home page, just scroll
+        const faqSection = document.getElementById("faq");
+        if (faqSection) {
+          faqSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } else {
+        // Navigate to home page with hash
+        navigate("/#faq");
+      }
+    }
   };
 
   const socialLinks = [
@@ -79,6 +98,7 @@ export const Footer = () => {
                 <li key={link.name}>
                   <Link
                     to={link.path}
+                    onClick={(e) => handleNavClick(e, link.path)}
                     className="text-sm text-muted-foreground hover:text-accent transition-colors"
                   >
                     {link.name}
