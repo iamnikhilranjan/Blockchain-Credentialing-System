@@ -18,10 +18,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useBlockchain } from "@/contexts/BlockchainContext";
 import { BulkIssuance } from "@/components/BulkIssuance";
 import blockchainService from "@/lib/blockchain";
+import { useTranslation, Trans } from "react-i18next";
 
 
 function IssuedCertificates() {
   const { address } = useBlockchain();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [rows, setRows] = useState<Array<{ certId: number; learnerId: number; templateId: number; txHash: string; timestamp: number }>>([]);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,7 @@ function IssuedCertificates() {
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading certificates...
+          {t('loadingCertificates')}
         </div>
       ) : null}
 
@@ -61,27 +63,27 @@ function IssuedCertificates() {
           <CardContent className="py-16 text-center space-y-4">
             <Award className="h-16 w-16 text-muted-foreground mx-auto opacity-50" />
             <div className="space-y-2">
-              <h3 className="font-heading text-xl font-semibold">No Certificates Issued</h3>
-              <p className="text-muted-foreground">You haven't issued any certificates yet</p>
+              <h3 className="font-heading text-xl font-semibold">{t('noCertificatesTitle')}</h3>
+              <p className="text-muted-foreground">{t('noCertificatesDesc')}</p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="rounded-lg border border-border/50 overflow-hidden bg-card/50 backdrop-blur-sm">
           <div className="bg-secondary/50 px-4 py-3 border-b border-border/30">
-            <h3 className="font-heading text-lg font-semibold">Issued Certificates</h3>
-            <p className="text-sm text-muted-foreground">Track all certificates issued by you</p>
+            <h3 className="font-heading text-lg font-semibold">{t('issuedCertificatesTitle')}</h3>
+            <p className="text-sm text-muted-foreground">{t('issuedCertificatesDesc')}</p>
           </div>
           <table className="w-full text-sm">
             <thead className="bg-secondary/30">
               <tr>
-                <th className="text-left p-3 font-medium">Serial No.</th>
-                <th className="text-left p-3 font-medium">Certificate ID</th>
-                <th className="text-left p-3 font-medium">Learner ID</th>
-                <th className="text-left p-3 font-medium">Template ID</th>
-                <th className="text-left p-3 font-medium">Issued At</th>
-                <th className="text-left p-3 font-medium">Transaction</th>
-                <th className="text-left p-3 font-medium">Status</th>
+                <th className="text-left p-3 font-medium">{t('serialNo')}</th>
+                <th className="text-left p-3 font-medium">{t('certificateId')}</th>
+                <th className="text-left p-3 font-medium">{t('learnerId')}</th>
+                <th className="text-left p-3 font-medium">{t('template')}</th>
+                <th className="text-left p-3 font-medium">{t('issueDate')}</th>
+                <th className="text-left p-3 font-medium">{t('transaction')}</th>
+                <th className="text-left p-3 font-medium">{t('status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -104,7 +106,7 @@ function IssuedCertificates() {
                   </td>
                   <td className="p-3">
                     <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-500/20">
-                      Active
+                      {t('activeStatus')}
                     </Badge>
                   </td>
                 </tr>
@@ -118,6 +120,7 @@ function IssuedCertificates() {
 }
 
 export default function Issue() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { isConnected, isAuthorized, userRole, address } = useBlockchain();
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -187,7 +190,7 @@ export default function Issue() {
           id,
           name: templateDetails.name,
           description: templateDetails.description || '',
-          instituteName: instituteDetails?.name || 'Unknown Institute'
+          instituteName: instituteDetails?.name || t('defaultInstituteName')
         });
       }
     } catch (e) {
@@ -232,12 +235,12 @@ export default function Issue() {
         if (learnerId) {
           setFormData(prev => ({ ...prev, learnerId: learnerId.toString() }));
           toast({
-            title: "Learner Found",
+            title: t('learnerFound'),
             description: `Learner ID: ${learnerId} found for wallet address`,
           });
         } else {
           toast({
-            title: "Learner Not Found",
+            title: t('learnerNotFound'),
             description: "No learner found with this wallet address",
             variant: "destructive",
           });
@@ -358,7 +361,7 @@ export default function Issue() {
         setIsSubmitted(true);
 
         toast({
-          title: "Certificate Issued Successfully! 🎉",
+          title: t('certificateIssuedSuccess'),
           description: `Certificate issued successfully! TX: ${result.txHash?.slice(0, 10)}...`,
         });
       } else {
@@ -384,10 +387,12 @@ export default function Issue() {
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-8 space-y-4">
             <h1 className="font-heading text-4xl md:text-5xl font-bold">
-              Issue <span className="text-accent">Certificate</span>
+              <Trans i18nKey="issueCertificateTitle">
+                Issue <span className="text-accent">Certificate</span>
+              </Trans>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Create and issue blockchain-verified credentials
+              {t('issueCertificateSubtitle')}
             </p>
           </div>
 
@@ -401,9 +406,9 @@ export default function Issue() {
             <Card className="mb-8 border-destructive bg-destructive/10">
               <CardContent className="p-6 text-center">
                 <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                <h3 className="font-heading text-xl font-bold mb-2">Unauthorized Access</h3>
+                <h3 className="font-heading text-xl font-bold mb-2">{t('unauthorizedAccess')}</h3>
                 <p className="text-muted-foreground">
-                  Your wallet is not registered as an authorized issuer. Please contact the administrator.
+                  {t('unauthorizedAccessDesc')}
                 </p>
               </CardContent>
             </Card>
@@ -417,8 +422,8 @@ export default function Issue() {
                 <CardContent className="p-8">
                   <div className="mb-6 text-center">
                     <CheckCircle className="h-12 w-12 text-accent mx-auto mb-3" />
-                    <h3 className="font-heading text-2xl font-bold mb-1">Certificate Issued Successfully!</h3>
-                    <p className="text-muted-foreground">The credential has been recorded on the blockchain</p>
+                    <h3 className="font-heading text-2xl font-bold mb-1">{t('certificateIssuedSuccess')}</h3>
+                    <p className="text-muted-foreground">{t('certificateRecorded')}</p>
                   </div>
 
                   {/* Actual Certificate */}
@@ -444,7 +449,7 @@ export default function Issue() {
                   <div className="mt-6 text-center">
                     <Button onClick={resetForm} variant="neon" size="lg" className="gap-2">
                       <QrCode className="h-4 w-4" />
-                      Issue Another Certificate
+                      {t('issueAnother')}
                     </Button>
                   </div>
                 </CardContent>
@@ -457,15 +462,15 @@ export default function Issue() {
           {!isSubmitted && (
             <Card className="shadow-card bg-card/50 backdrop-blur-sm border-border/50">
               <CardHeader>
-                <CardTitle className="font-heading text-2xl">Certificate Issuer</CardTitle>
-                <CardDescription>Issue certificates and review those you've issued</CardDescription>
+                <CardTitle className="font-heading text-2xl">{t('certificateIssuer')}</CardTitle>
+                <CardDescription>{t('issueAndReview')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 <Tabs defaultValue="issue">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="issue">Issue Certificates</TabsTrigger>
-                    <TabsTrigger value="bulk">Bulk Issue</TabsTrigger>
-                    <TabsTrigger value="issued">Issued Certificates</TabsTrigger>
+                    <TabsTrigger value="issue">{t('tabIssue')}</TabsTrigger>
+                    <TabsTrigger value="bulk">{t('tabBulk')}</TabsTrigger>
+                    <TabsTrigger value="issued">{t('tabIssued')}</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="issue" className="space-y-8">
@@ -477,12 +482,12 @@ export default function Issue() {
                           {/* Learner Information */}
                           <div className="space-y-4">
                             <h3 className="font-heading text-lg font-semibold border-b border-accent/20 pb-2">
-                              Learner Information
+                              {t('learnerInfo')}
                             </h3>
                             <div className="grid md:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="learnerWallet">
-                                  Learner Wallet Address <span className="text-destructive">*</span>
+                                  {t('learnerWallet')} <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="learnerWallet"
@@ -493,12 +498,12 @@ export default function Issue() {
                                   disabled={!isAuthorized}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Enter the learner's wallet address to auto-fetch their ID.
+                                  {t('learnerWalletHelp')}
                                 </p>
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="learnerId">
-                                  Learner ID (Auto-filled)
+                                  {t('learnerIdAuto')}
                                 </Label>
                                 <Input
                                   id="learnerId"
@@ -508,7 +513,7 @@ export default function Issue() {
                                   className="bg-background/30"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Automatically populated when wallet address is entered.
+                                  {t('learnerIdHelp')}
                                 </p>
                               </div>
                             </div>
@@ -516,18 +521,18 @@ export default function Issue() {
                             <div className="grid md:grid-cols-1 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="learnerName">
-                                  Learner Name <span className="text-destructive">*</span>
+                                  {t('learnerNameLabel')} <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="learnerName"
-                                  placeholder="Enter learner's full name"
+                                  placeholder={t('learnerNamePlaceholder')}
                                   value={formData.learnerName}
                                   onChange={(e) => setFormData({ ...formData, learnerName: e.target.value })}
                                   className="bg-background/50"
                                   disabled={!isAuthorized}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Full name of the learner receiving the certificate.
+                                  {t('learnerNameHelpDesc')}
                                 </p>
                               </div>
                             </div>
@@ -536,12 +541,12 @@ export default function Issue() {
                           {/* Assessment Data (to be hashed) */}
                           <div className="space-y-4">
                             <h3 className="font-heading text-lg font-semibold border-b border-accent/20 pb-2">
-                              Assessment Data (Will be Hashed)
+                              {t('assessmentData')}
                             </h3>
                             <div className="grid md:grid-cols-1 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="marks">
-                                  Marks/Score (Optional - Display Only)
+                                  {t('marksLabel')}
                                 </Label>
                                 <Input
                                   id="marks"
@@ -552,7 +557,7 @@ export default function Issue() {
                                   disabled={!isAuthorized}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Marks are optional and for display only. They are NOT stored on the blockchain.
+                                  {t('marksHelp')}
                                 </p>
                               </div>
                             </div>
@@ -562,9 +567,9 @@ export default function Issue() {
                                 🔒
                               </div>
                               <div>
-                                <h4 className="font-semibold text-accent text-sm">Privacy Protection</h4>
+                                <h4 className="font-semibold text-accent text-sm">{t('privacyProtection')}</h4>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Template name, learner name, and learner ID will be cryptographically hashed and stored on the blockchain. Only the hash will be stored for verification purposes.
+                                  {t('privacyProtectionDesc')}
                                 </p>
                               </div>
                             </div>
@@ -573,11 +578,11 @@ export default function Issue() {
                           {/* Template Selection */}
                           <div className="space-y-4">
                             <h3 className="font-heading text-lg font-semibold border-b border-accent/20 pb-2">
-                              Certificate Template
+                              {t('certificateTemplate')}
                             </h3>
                             <div className="space-y-2">
                               <Label htmlFor="templateId">
-                                Choose Template <span className="text-destructive">*</span>
+                                {t('chooseTemplate')} <span className="text-destructive">*</span>
                               </Label>
                               <Select
                                 value={formData.templateId}
@@ -585,7 +590,7 @@ export default function Issue() {
                                 disabled={!isAuthorized}
                               >
                                 <SelectTrigger className="bg-background/50">
-                                  <SelectValue placeholder="Select template (TemplateID - Title)" />
+                                  <SelectValue placeholder={t('selectTemplatePlaceholder')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {templatesLoading ? (
@@ -606,7 +611,7 @@ export default function Issue() {
                                 </SelectContent>
                               </Select>
                               <p className="text-xs text-muted-foreground">
-                                Selecting a template will automatically fetch its details and institute information.
+                                {t('templateDetails')}
                               </p>
                             </div>
 
@@ -615,7 +620,7 @@ export default function Issue() {
                               <Card className="bg-card/30 border-accent/20">
                                 <CardContent className="p-4">
                                   <div className="space-y-2">
-                                    <h4 className="font-medium text-accent">Template Details</h4>
+                                    <h4 className="font-medium text-accent">{t('templateDetails')}</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                                       <div>
                                         <span className="text-muted-foreground">Institute:</span>
@@ -641,12 +646,12 @@ export default function Issue() {
                           {/* Dates Section */}
                           <div className="space-y-4">
                             <h3 className="font-heading text-lg font-semibold border-b border-accent/20 pb-2">
-                              Validity Period
+                              {t('validityPeriod')}
                             </h3>
                             <div className="grid md:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="issueDate">
-                                  Issue Date <span className="text-destructive">*</span>
+                                  {t('issueDateLabel')} <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
                                   id="issueDate"
@@ -659,7 +664,7 @@ export default function Issue() {
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="expiryDate">
-                                  Expiry Date
+                                  {t('expiryDateLabel')}
                                 </Label>
                                 <Input
                                   id="expiryDate"
@@ -670,7 +675,7 @@ export default function Issue() {
                                   disabled={!isAuthorized}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                  Leave blank for lifetime validity
+                                  {t('expiryDateHelp')}
                                 </p>
                               </div>
                             </div>
@@ -701,7 +706,7 @@ export default function Issue() {
                         disabled={!isAuthorized || !formData.learnerWallet || !formData.learnerId || !formData.templateId || !formData.marks || !selectedTemplate}
                       >
                         <Eye className="h-4 w-4" />
-                        Preview Certificate
+                        {t('previewCertificate')}
                       </Button>
                       <Button
                         variant="neon"
@@ -715,7 +720,7 @@ export default function Issue() {
                         ) : (
                           <QrCode className="h-4 w-4" />
                         )}
-                        {isLoading ? 'Issuing Certificate...' : 'Issue Certificate on Blockchain'}
+                        {isLoading ? t('issuing') : t('issueCertificateAction')}
                       </Button>
                     </div>
                   </TabsContent>
