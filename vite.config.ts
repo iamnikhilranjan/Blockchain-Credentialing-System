@@ -31,9 +31,14 @@ export default defineConfig(({ mode }) => ({
         manualChunks: undefined,
       },
     },
-    // Ensure proper handling of dynamic imports
+    // Ensure proper handling of dynamic imports and CommonJS modules
     commonjsOptions: {
       include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['xlsx'],
     },
   },
   // Define global constants

@@ -16,7 +16,7 @@ export default function Verify() {
   const { toast } = useToast();
   const [certificateId, setCertificateId] = useState("");
   const [learnerName, setLearnerName] = useState("");
-  const [marks, setMarks] = useState("");
+  const [courseName, setCourseName] = useState("");
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [verificationKey, setVerificationKey] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -171,11 +171,11 @@ export default function Verify() {
       return;
     }
 
-    // Only validate learner name and marks for manual verification, not QR scan
-    if (!isQRScan && (!learnerName || !marks)) {
+    // Only validate learner name and course name for manual verification, not QR scan
+    if (!isQRScan && (!learnerName || !courseName)) {
       toast({
         title: "Missing Information",
-        description: "Please enter Learner Name and Marks/Score for manual verification",
+        description: "Please enter Learner Name and Course Name for manual verification",
         variant: "destructive",
       });
       return;
@@ -198,7 +198,7 @@ export default function Verify() {
       console.log('Certificate ID:', idValue);
       console.log('Is QR Scan:', isQRScan);
       console.log('Learner Name:', learnerName);
-      console.log('Marks:', marks);
+      console.log('Course Name:', courseName);
 
       // Test blockchain connectivity first
       const connectivity = await blockchainService.testConnectivity();
@@ -222,16 +222,23 @@ export default function Verify() {
         let hashMatches = true; // Default to true for QR scan
 
         // Only perform hash verification for manual verification (not QR scan)
-        if (!isQRScan && learnerName && marks) {
-          // Calculate hash from provided data (learner name, marks) - matching the stored hash structure
+        if (!isQRScan && learnerName && courseName) {
+          // Fetch template details to get template name
+          const templateDetails = await blockchainService.getTemplateDetails(cert.templateId || 0);
+          const templateName = templateDetails?.name || '';
+
+          // Calculate hash from provided data (template name, learner name, learner ID)
           const verificationData = {
+            templateName: courseName,  // User provides expected course name
             learnerName: learnerName,
-            marks: marks
+            learnerId: String(cert.learnerId)  // From blockchain
           };
           const calculatedHash = blockchainService.createHash(JSON.stringify(verificationData));
 
           console.log('=== MANUAL VERIFICATION DEBUG ===');
-          console.log('Input data:', { certificateId: idValue, learnerName, marks });
+          console.log('Input data:', { certificateId: idValue, learnerName, courseName });
+          console.log('Template from blockchain:', templateName);
+          console.log('Learner ID from blockchain:', cert.learnerId);
           console.log('Verification data being hashed:', verificationData);
           console.log('JSON string being hashed:', JSON.stringify(verificationData));
           console.log('Calculated hash:', calculatedHash);
@@ -260,7 +267,7 @@ export default function Verify() {
             issuedAt: cert.issuedAt && cert.issuedAt > 0 ? new Date(cert.issuedAt * 1000).toLocaleDateString() : 'Unknown',
             validUntil: !cert.validUntil || cert.validUntil === 0 ? 'Lifetime' : new Date((cert.validUntil as number) * 1000).toLocaleDateString(),
             dataHash: cert.dataHash,
-            marks: marks,
+            courseName: courseName,
             learnerName: learnerName,
           };
           setVerificationResult(result);
@@ -279,7 +286,7 @@ export default function Verify() {
           setVerificationResult({
             status: "invalid",
             certificateId: idValue,
-            error: "Certificate data does not match. Please verify the learner name and marks/score."
+            error: "Certificate data does not match. Please verify the learner name and course name."
           });
           toast({
             title: "Verification Failed",
@@ -292,7 +299,7 @@ export default function Verify() {
 
       // Fallback to strict verification function when existence check fails
       const idHash = blockchainService.createHash(idValue);
-      const detailsHash = marks ? blockchainService.createHash(marks) : blockchainService.createHash("");
+      const detailsHash = courseName ? blockchainService.createHash(courseName) : blockchainService.createHash("");
       const result = await blockchainService.verifyCertificate(parseInt(idValue), idHash, detailsHash);
       if (result.success && result.isValid && result.certificateData) {
         const certData = result.certificateData;
@@ -306,7 +313,7 @@ export default function Verify() {
           issuedAt: new Date(certData.issuedAt.toNumber() * 1000).toLocaleDateString(),
           validUntil: certData.validUntil.toNumber() === 0 ? "Lifetime" : new Date(certData.validUntil.toNumber() * 1000).toLocaleDateString(),
           dataHash: certData.dataHash,
-          grade: marks || "Not provided",
+          courseName: courseName || "Not provided",
         };
         setVerificationResult(verificationResult);
 
@@ -635,16 +642,16 @@ export default function Verify() {
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="marks">Marks/Score <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="courseName">Course Name <span className="text-destructive">*</span></Label>
                       <Input
-                        id="marks"
-                        placeholder="Enter marks/score (e.g., 98%, A+, 85/100, Pass, etc.)"
-                        value={marks}
-                        onChange={(e) => setMarks(e.target.value)}
+                        id="courseName"
+                        placeholder="Enter course/template name (e.g., Web Development)"
+                        value={courseName}
+                        onChange={(e) => setCourseName(e.target.value)}
                         className="bg-background/50"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Enter the exact marks/score as it appears on the certificate
+                        Enter the exact course name as it appears on the certificate
                       </p>
                     </div>
                     <Button
@@ -652,10 +659,10 @@ export default function Verify() {
                       size="lg"
                       className="w-full"
                       onClick={() => {
-                        console.log('Button clicked - Form values:', { certificateId, learnerName, marks });
+                        console.log('Button clicked - Form values:', { certificateId, learnerName, courseName });
                         handleVerify(undefined, false); // Pass isQRScan: false for manual verification
                       }}
-                      disabled={isLoading || !certificateId || !learnerName || !marks}
+                      disabled={isLoading || !certificateId || !learnerName || !courseName}
                     >
                       {isLoading ? (
                         <>
@@ -666,13 +673,13 @@ export default function Verify() {
                         'Verify Certificate'
                       )}
                     </Button>
-                    {(!certificateId || !learnerName || !marks) && (
+                    {(!certificateId || !learnerName || !courseName) && (
                       <p className="text-xs text-muted-foreground text-center mt-2">
                         Please fill in all required fields to enable verification
                       </p>
                     )}
                     <div className="text-xs text-muted-foreground text-center mt-2 p-2 bg-muted/20 rounded">
-                      Debug: CertID={certificateId || 'empty'}, Name={learnerName || 'empty'}, Marks={marks || 'empty'}
+                      Debug: CertID={certificateId || 'empty'}, Name={learnerName || 'empty'}, Course={courseName || 'empty'}
                     </div>
                   </div>
                 </TabsContent>
@@ -788,8 +795,8 @@ export default function Verify() {
                               <p className="font-semibold">{verificationResult.validUntil}</p>
                             </div>
                             <div>
-                              <Label className="text-muted-foreground">Marks/Score</Label>
-                              <p className="font-semibold text-accent">{verificationResult.marks}</p>
+                              <Label className="text-muted-foreground">Course Name</Label>
+                              <p className="font-semibold text-accent">{verificationResult.courseName || "Not provided"}</p>
                             </div>
                             <div className="md:col-span-2">
                               <Label className="text-muted-foreground">Data Hash</Label>
@@ -896,7 +903,7 @@ export default function Verify() {
                           setVerificationResult(null);
                           setCertificateId("");
                           setLearnerName("");
-                          setMarks("");
+                          setCourseName("");
                           setFetchedDetails({});
                           setVerificationKey(prev => prev + 1);
                           fetchingDetailsRef.current = false;
