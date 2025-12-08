@@ -10,6 +10,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import blockchainService from "@/lib/blockchain";
+import BulkVerification from "@/components/BulkVerification";
 
 export default function Verify() {
   const { toast } = useToast();
@@ -551,7 +552,7 @@ export default function Verify() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="scan" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-8">
+                <TabsList className="grid w-full grid-cols-3 mb-8">
                   <TabsTrigger value="scan" className="gap-2">
                     <QrCode className="h-4 w-4" />
                     Scan QR Code
@@ -559,6 +560,10 @@ export default function Verify() {
                   <TabsTrigger value="manual" className="gap-2">
                     <Search className="h-4 w-4" />
                     Manual Verify
+                  </TabsTrigger>
+                  <TabsTrigger value="bulksig" className="gap-2">
+                    <Search className="h-4 w-4" />
+                    Bulk Sig
                   </TabsTrigger>
                 </TabsList>
 
@@ -677,6 +682,10 @@ export default function Verify() {
                       Debug: CertID={certificateId || 'empty'}, Name={learnerName || 'empty'}, Course={courseName || 'empty'}
                     </div>
                   </div>
+                </TabsContent>
+
+                <TabsContent value="bulksig" className="space-y-6">
+                  <BulkVerification />
                 </TabsContent>
               </Tabs>
 

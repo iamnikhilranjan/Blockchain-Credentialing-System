@@ -16,6 +16,7 @@ import { CertificateRenderer } from "@/components/CertificateRenderer";
 import { TemplateSelector } from "@/components/TemplateSelector";
 import { useToast } from "@/hooks/use-toast";
 import { useBlockchain } from "@/contexts/BlockchainContext";
+import { BulkIssuance } from "@/components/BulkIssuance";
 import blockchainService from "@/lib/blockchain";
 
 
@@ -461,8 +462,9 @@ export default function Issue() {
               </CardHeader>
               <CardContent className="space-y-8">
                 <Tabs defaultValue="issue">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="issue">Issue Certificates</TabsTrigger>
+                    <TabsTrigger value="bulk">Bulk Issue</TabsTrigger>
                     <TabsTrigger value="issued">Issued Certificates</TabsTrigger>
                   </TabsList>
 
@@ -716,6 +718,10 @@ export default function Issue() {
                         {isLoading ? 'Issuing Certificate...' : 'Issue Certificate on Blockchain'}
                       </Button>
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="bulk">
+                    <BulkIssuance />
                   </TabsContent>
 
                   <TabsContent value="issued">
