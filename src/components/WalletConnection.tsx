@@ -66,10 +66,6 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
   if (!showDetails && isConnected) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <Badge variant="default" className="gap-1 px-3 py-1">
-          <CheckCircle className="h-3 w-3" />
-          {formatAddress(address!)}
-        </Badge>
         <ConnectButton client={thirdwebClient} wallets={wallets} theme={customTheme} />
       </div>
     );
