@@ -36,6 +36,58 @@ class OCRService {
     }
 
     /**
+     * Preprocess image for faster OCR
+     */
+    private async preprocessImage(imageFile: File): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    if (!ctx) {
+                        reject(new Error('Failed to get canvas context'));
+                        return;
+                    }
+
+                    // Resize to max 1920px width for faster processing
+                    const maxWidth = 1920;
+                    const scale = Math.min(1, maxWidth / img.width);
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+
+                    // Draw image
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Convert to grayscale and increase contrast for better OCR
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Convert to grayscale
+                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                        // Increase contrast
+                        const contrast = 1.5;
+                        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                        const adjusted = factor * (gray - 128) + 128;
+
+                        data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, adjusted));
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(imageFile);
+        });
+    }
+
+    /**
      * Process image and extract text
      */
     async extractText(imageFile: File): Promise<string> {
@@ -45,7 +97,16 @@ class OCRService {
             throw new Error('OCR worker not initialized');
         }
 
-        const { data: { text } } = await this.worker.recognize(imageFile);
+        // Preprocess image for better and faster OCR
+        const processedImage = await this.preprocessImage(imageFile);
+
+        // Use faster PSM mode (6 = assume uniform block of text)
+        await this.worker.setParameters({
+            tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/-:., ',
+        });
+
+        const { data: { text } } = await this.worker.recognize(processedImage);
         return text;
     }
 

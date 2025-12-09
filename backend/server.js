@@ -3,6 +3,8 @@ import cors from 'cors';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
 import { MongoClient } from 'mongodb';
+import multer from 'multer';
+import { handleOCRVerification } from './ocrHandler.js';
 
 dotenv.config();
 
@@ -31,6 +33,16 @@ async function connectMongoDB() {
 }
 
 connectMongoDB();
+
+// Configure multer for file uploads
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Invalid file type'));
+    }
+});
 
 
 // Contract addresses (matching frontend blockchain.ts)
@@ -284,6 +296,11 @@ app.get('/api/mongo-certificates/:walletAddress', async (req, res) => {
             error: error.message || 'An error occurred while fetching MongoDB certificates'
         });
     }
+});
+
+// POST /api/verify-ocr - Automated OCR verification
+app.post('/api/verify-ocr', upload.single('certificate'), async (req, res) => {
+    return handleOCRVerification(req, res, db, COLLECTION_NAME);
 });
 
 // Health check endpoint
