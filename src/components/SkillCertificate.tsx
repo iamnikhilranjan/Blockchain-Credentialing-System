@@ -270,7 +270,7 @@ const SkillCertificate = ({ data }: SkillCertificateProps) => {
                     </div>
 
                     {/* Footer - Inside borders with proper spacing */}
-                    <div className="mt-auto mb-8 flex justify-between items-start gap-2">
+                    <div className="mt-auto mb-12 flex justify-between items-start gap-2">
                         {/* QR Code */}
                         <div className="flex-shrink-0">
                             {data.qrData ? (

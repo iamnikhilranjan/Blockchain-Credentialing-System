@@ -142,7 +142,9 @@ export default function Certificates() {
       const canvas = await html2canvas(container.firstChild as HTMLElement, {
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        height: 800,
+        windowHeight: 800
       });
 
       const imgData = canvas.toDataURL('image/png');
