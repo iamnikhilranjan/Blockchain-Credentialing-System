@@ -9,6 +9,11 @@ import { Loader2, Upload, FileSpreadsheet, ShieldCheck, Download, AlertCircle } 
 import { readExcelFile, ParsedRow, generateSignedExcel } from "@/utils/excelParser";
 import { signCertificate } from "@/utils/eip712";
 import { ethers } from "ethers";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { templateRegistry, getTemplateById } from "@/templates/certificates";
+import { createRoot } from "react-dom/client";
+import { CertificateData } from "@/templates/certificates/types";
 
 export function BulkIssuance() {
     const { toast } = useToast();
@@ -22,6 +27,8 @@ export function BulkIssuance() {
     const [serverSideSigning, setServerSideSigning] = useState(false);
     const [rowStatuses, setRowStatuses] = useState<Record<number, { status: 'pending' | 'signed' | 'error', message?: string }>>({});
     const [showStatus, setShowStatus] = useState(false);
+    const [selectedTemplateId, setSelectedTemplateId] = useState(templateRegistry[0].id);
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,6 +186,113 @@ export function BulkIssuance() {
         }
     };
 
+    const handleDownloadPDFs = async () => {
+        if (signedRows.length === 0) return;
+
+        setIsGeneratingPDF(true);
+        const TemplateComponent = getTemplateById(selectedTemplateId)?.component;
+
+        if (!TemplateComponent) {
+            toast({ title: "Template Error", description: "Selected template not found", variant: "destructive" });
+            setIsGeneratingPDF(false);
+            return;
+        }
+
+        try {
+            // We'll generate a single PDF for all (for now) or a ZIP?
+            // User requested "downloaded with the same templates".
+            // Generating one multi-page PDF is safer for browser memory than 100 individual downloads.
+            // Or a zip. But zip requires JSZip. Let's do a multi-page PDF.
+
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Hidden container to render
+            const container = document.createElement("div");
+            container.style.position = "absolute";
+            container.style.top = "-9999px";
+            container.style.left = "-9999px";
+            // Make it large enough
+            container.style.width = "1200px";
+            document.body.appendChild(container);
+
+            let pageAdded = false;
+
+            for (let i = 0; i < signedRows.length; i++) {
+                const row = signedRows[i];
+                // Prepare data
+                // Map known fields + all other fields from originalRow
+                const certData: CertificateData = {
+                    certificateId: row.certId,
+                    // ...row contains certId, learner (address), course, marks, signature
+                    ...row,
+                    // ...row.originalRow contains all Excel columns
+                    ...row.originalRow,
+
+                    // Explicitly map/overwrite with preferred values
+                    learnerName: row.originalRow['Name of Candidate'] || row.originalRow['name'] || row.learner,
+                    courseName: row.course,
+                    marks: row.marks,
+                    issueDate: row.originalRow['Issue Date'] || new Date().toISOString().split('T')[0],
+                    identityHash: row.signature
+                };
+
+                // Render React component to DOM
+                const root = createRoot(container);
+
+                // Wrap in a promise to wait for render
+                await new Promise<void>((resolve) => {
+                    root.render(
+                        <div style={{ width: '1123px', height: '794px', background: 'white' }}>
+                            {/* A4 landscape approx px at 96dpi is 1123x794. Adjust scaling if needed. */}
+                            <TemplateComponent
+                                certificateData={certData}
+                                includeQR={true}
+                                qrData={`https://checkcerts.com/verify/${row.certId}`}
+                            />
+                        </div>
+                    );
+                    // Short timeout to allow render
+                    setTimeout(resolve, 100);
+                });
+
+                // Capture
+                const canvas = await html2canvas(container.children[0] as HTMLElement, {
+                    scale: 2, // Better quality
+                    useCORS: true,
+                    logging: false
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+
+                if (pageAdded) {
+                    pdf.addPage('a4', 'l');
+                }
+                pdf.addImage(imgData, 'PNG', 0, 0, 297, 210); // A4 Landscape mm
+                pageAdded = true;
+
+                // Unmount for next
+                root.unmount();
+
+                // Update progress? - Not strictly in UI but good to know it's working
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+
+            document.body.removeChild(container);
+            pdf.save(`Bulk_Certificates_${new Date().getTime()}.pdf`);
+            toast({ title: "PDFs Generated", description: "Certificates PDF downloaded successfully." });
+
+        } catch (e: any) {
+            console.error("PDF Gen Error", e);
+            toast({ title: "PDF Generation Failed", description: e.message, variant: "destructive" });
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    };
+
     const handleSaveToDB = () => {
         toast({ title: "Coming Soon", description: "Database integration is not yet enabled." });
     };
@@ -255,6 +369,19 @@ export function BulkIssuance() {
                             <Input value="11155111" readOnly className="font-mono bg-muted/50" />
                         </div>
 
+                        <div className="space-y-2">
+                            <Label>Certificate Template</Label>
+                            <select
+                                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={selectedTemplateId}
+                                onChange={(e) => setSelectedTemplateId(e.target.value)}
+                            >
+                                {templateRegistry.map(t => (
+                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div className="flex items-center space-x-2">
                             <input
                                 type="checkbox"
@@ -310,6 +437,15 @@ export function BulkIssuance() {
                                 <Download className="mr-2 h-4 w-4" />
                                 Download Signed CSV
                             </Button>
+
+                            <Button
+                                variant="outline"
+                                onClick={handleDownloadPDFs}
+                                disabled={signedRows.length === 0 || isGeneratingPDF}
+                            >
+                                {isGeneratingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+                                {isGeneratingPDF ? "Generating..." : "Download PDF"}
+                            </Button>
                         </div>
                     </div>
 
@@ -363,6 +499,6 @@ export function BulkIssuance() {
                     )}
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 }
