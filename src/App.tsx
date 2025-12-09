@@ -17,6 +17,11 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
+  // <ThirdwebProvider>
+  //   <BlockchainProvider>
+  //     <div className="p-10 text-blue-500">App Minimal - Blockchain Active</div>
+  //   </BlockchainProvider>
+  // </ThirdwebProvider>
   <QueryClientProvider client={queryClient}>
     <ThirdwebProvider>
       <BlockchainProvider>
