@@ -1251,7 +1251,6 @@ class BlockchainService {
   ): Promise<Array<{ id: number; name?: string; wallet?: string; event: 'added' | 'revoked'; blockNumber: number; timestamp: number }>> {
     if (!this.state.provider) throw new Error('Not connected to provider');
 
-    // We assume these events exist on the CertAgency contract
     const addedIface = new ethers.utils.Interface([
       'event InstituteAdded(uint256 indexed id, string name, address wallet)'
     ]);
