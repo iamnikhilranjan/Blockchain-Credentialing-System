@@ -5,16 +5,23 @@ const domain = {
     name: 'CertificateSigning',
     version: '1',
     chainId: 11155111, // Sepolia
-    verifyingContract: '0x8e79C63173070B907b36544bB00355EFB4B69c48',
+    verifyingContract: '0xf6F77A8A8131B8a4fD01473bB4430C663d8cc606',
 } as const;
 
 // Certificate Type Definition
+// Certificate Type Definition
 const types = {
     Certificate: [
-        { name: 'certId', type: 'string' },
-        { name: 'learner', type: 'address' },
-        { name: 'course', type: 'string' },
-        { name: 'marks', type: 'string' },
+        { name: 'certificateNumber', type: 'string' },
+        { name: 'candidateFullName', type: 'string' },
+        { name: 'dateOfBirth', type: 'string' },
+        { name: 'qualificationName', type: 'string' },
+        { name: 'nsqfLevel', type: 'uint8' },
+        { name: 'assessmentResult', type: 'string' },
+        { name: 'dateOfIssue', type: 'string' },
+        { name: 'awardingBodyName', type: 'string' },
+        { name: 'trainingProviderName', type: 'string' },
+        { name: 'ncvetRecognitionStatus', type: 'string' },
     ],
 };
 
@@ -34,18 +41,24 @@ const VERIFIER_ABI = [
     },
     {
         type: 'function',
-        name: 'isApprovedInstitute',
-        inputs: [{ name: 'wallet', type: 'address', internalType: 'address' }],
-        outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+        name: 'isInstituteActive',
+        inputs: [{ name: 'account', type: 'address', internalType: 'address' }],
+        outputs: [{ name: 'isActive', type: 'bool', internalType: 'bool' }],
         stateMutability: 'view',
     },
 ];
 
 export interface CertData {
-    certId: string;
-    learner: string;
-    course: string;
-    marks: string;
+    certificateNumber: string;
+    candidateFullName: string;
+    dateOfBirth: string;
+    qualificationName: string;
+    nsqfLevel: number;
+    assessmentResult: string;
+    dateOfIssue: string;
+    awardingBodyName: string;
+    trainingProviderName: string;
+    ncvetRecognitionStatus: string;
     signature: string;
     expectedIssuer?: string;
 }
@@ -55,6 +68,9 @@ export interface VerificationResult {
     signer: string | null;
     error: string | null;
 }
+
+// Institute Status Cache: Address -> Boolean
+const instituteStatusCache: Record<string, boolean> = {};
 
 /**
  * Verify a certificate's ECDSA signature on-chain using EIP-712 typed data
@@ -69,21 +85,12 @@ export const verifyCertificateOnChain = async (
     certData: CertData
 ): Promise<VerificationResult> => {
     try {
-        // Validate required fields
-        if (!certData.certId || !certData.learner || !certData.course || !certData.marks || !certData.signature) {
+        // Validate required fields (basic check)
+        if (!certData.certificateNumber || !certData.candidateFullName || !certData.signature) {
             return {
                 valid: false,
                 signer: null,
-                error: 'Missing required fields (certId, learner, course, marks, signature)',
-            };
-        }
-
-        // Validate Ethereum address format
-        if (!ethers.utils.isAddress(certData.learner)) {
-            return {
-                valid: false,
-                signer: null,
-                error: `Invalid learner address: ${certData.learner}`,
+                error: 'Missing required fields (certificateNumber, candidateFullName, signature)',
             };
         }
 
@@ -98,10 +105,16 @@ export const verifyCertificateOnChain = async (
 
         // Prepare the message for signature verification
         const message = {
-            certId: certData.certId,
-            learner: certData.learner,
-            course: certData.course,
-            marks: certData.marks,
+            certificateNumber: certData.certificateNumber,
+            candidateFullName: certData.candidateFullName,
+            dateOfBirth: certData.dateOfBirth,
+            qualificationName: certData.qualificationName,
+            nsqfLevel: certData.nsqfLevel,
+            assessmentResult: certData.assessmentResult,
+            dateOfIssue: certData.dateOfIssue,
+            awardingBodyName: certData.awardingBodyName,
+            trainingProviderName: certData.trainingProviderName,
+            ncvetRecognitionStatus: certData.ncvetRecognitionStatus,
         };
 
         // Recover signer address from signature using ethers.js
@@ -121,20 +134,29 @@ export const verifyCertificateOnChain = async (
             };
         }
 
-        // Initialize provider and contract
-        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-        const contract = new ethers.Contract(contractAddress, VERIFIER_ABI, provider);
-
-        // Check if signer is a registered and active institute
+        // Check if signer is a registered and active institute (Cached Strategy)
+        const signerAddress = recoveredSigner.toLowerCase();
         let isRegistered = false;
-        try {
-            isRegistered = await contract.isApprovedInstitute(recoveredSigner);
-        } catch (error: any) {
-            return {
-                valid: false,
-                signer: recoveredSigner,
-                error: `Contract call failed: ${error.message}`,
-            };
+
+        if (instituteStatusCache[signerAddress] !== undefined) {
+            // Use Cached Value
+            isRegistered = instituteStatusCache[signerAddress];
+        } else {
+            // Fetch from Blockchain
+            try {
+                const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+                const contract = new ethers.Contract(contractAddress, VERIFIER_ABI, provider);
+                isRegistered = await contract.isInstituteActive(recoveredSigner);
+
+                // Update Cache
+                instituteStatusCache[signerAddress] = isRegistered;
+            } catch (error: any) {
+                return {
+                    valid: false,
+                    signer: recoveredSigner,
+                    error: `Contract call failed: ${error.message}`,
+                };
+            }
         }
 
         // If expectedIssuer is provided, verify it matches the recovered signer

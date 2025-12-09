@@ -27,7 +27,10 @@ export function BulkIssuance() {
     const [signedRows, setSignedRows] = useState<any[]>([]);
     const [fileName, setFileName] = useState("");
     const [serverSideSigning, setServerSideSigning] = useState(false);
-    const [rowStatuses, setRowStatuses] = useState<Record<number, { status: 'pending' | 'signed' | 'error', message?: string }>>({});
+
+    // Virtualized Log State instead of holding status for every row in UI state
+    const [activityLog, setActivityLog] = useState<string[]>([]);
+    const [errorLog, setErrorLog] = useState<{ index: number, message: string }[]>([]);
     const [showStatus, setShowStatus] = useState(false);
     const [selectedTemplateId, setSelectedTemplateId] = useState(templateRegistry[0].id);
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -40,7 +43,8 @@ export function BulkIssuance() {
             setFileName(selectedFile.name);
             setSignedRows([]);
             setSigningProgress(0);
-            setRowStatuses({});
+            setActivityLog([]);
+            setErrorLog([]);
             setShowStatus(false);
             try {
                 const rows = await readExcelFile(selectedFile);
@@ -61,11 +65,11 @@ export function BulkIssuance() {
     };
 
     const validateRow = (row: ParsedRow): string | null => {
-        if (!row.certId) return "Missing Certificate ID";
-        if (!row.learner) return "Missing Learner Address";
-        if (!ethers.utils.isAddress(row.learner)) return `Invalid Address: ${row.learner}`;
-        if (!row.course) return "Missing Course";
-        if (!row.marks) return "Missing Marks";
+        if (!row.certificateNumber) return "Missing Certificate Number";
+        if (!row.candidateFullName) return "Missing Candidate Name";
+        // if (!ethers.utils.isAddress(row.learner)) return `Invalid Address: ${row.learner}`; // No longer required
+        if (!row.qualificationName) return "Missing Qualification Name";
+        // if (!row.marks) return "Missing Marks"; // Changed to assessmentResult, maybe optional?
         return null;
     };
 
@@ -82,7 +86,8 @@ export function BulkIssuance() {
 
         setIsSigning(true);
         setSigningProgress(0);
-        setRowStatuses({});
+        setActivityLog(["Starting batch process..."]);
+        setErrorLog([]);
         setShowStatus(true);
 
         const signedData: any[] = [];
@@ -93,57 +98,68 @@ export function BulkIssuance() {
 
         try {
             console.log('Starting batch signing...');
+
+            // Batch processing variables
+            const BATCH_SIZE = 100; // Process 100 items before yielding to UI
+
             for (let i = 0; i < total; i++) {
                 const row = parsedRows[i];
-                console.log(`\n--- Processing Row ${i + 1}/${total} ---`);
-                console.log('Row data:', {
-                    certId: row.certId,
-                    learner: row.learner,
-                    course: row.course,
-                    marks: row.marks
-                });
+
+                // Only log to console occasionally for massive datasets to avoid console spam lag
+                if (i % 1000 === 0) console.log(`Processing ${i}/${total}`);
 
                 const validationError = validateRow(row);
                 if (validationError) {
-                    console.warn(`❌ Row ${i + 1} validation failed: ${validationError}`);
+                    // console.warn(`❌ Row ${i + 1} validation failed: ${validationError}`);
                     signedData.push({ ...row.originalRow, error: validationError });
-                    setRowStatuses(prev => ({ ...prev, [i]: { status: 'error', message: validationError } }));
+                    setErrorLog(prev => [...prev.slice(-49), { index: i + 1, message: validationError }]);
                     continue;
                 }
 
-                console.log(`✓ Row ${i + 1} validation passed`);
-
                 try {
-                    console.log(`Attempting to sign row ${i + 1}...`);
                     const certificateData = {
-                        certId: row.certId,
-                        learner: row.learner,
-                        course: row.course,
-                        marks: row.marks
+                        certificateNumber: row.certificateNumber,
+                        candidateFullName: row.candidateFullName,
+                        dateOfBirth: row.dateOfBirth,
+                        qualificationName: row.qualificationName,
+                        nsqfLevel: row.nsqfLevel,
+                        assessmentResult: row.assessmentResult,
+                        dateOfIssue: row.dateOfIssue,
+                        awardingBodyName: row.awardingBodyName,
+                        trainingProviderName: row.trainingProviderName,
+                        ncvetRecognitionStatus: row.ncvetRecognitionStatus
                     };
-                    console.log('Certificate data to sign:', certificateData);
 
-                    const signature = await signCertificate(certificateData, pk);
-
-                    console.log(`✓ Row ${i + 1} signed successfully!`);
-                    console.log('Signature:', signature);
+                    const { signature, credentialHash } = await signCertificate(certificateData, pk);
+                    const vcId = `vc:ncvet:${row.certificateNumber || 'unknown'}`;
 
                     signedData.push({
                         ...row.originalRow,
-                        signature: signature
+                        signature: signature,
+                        credentialHash: credentialHash,
+                        vcId: vcId
                     });
-                    setRowStatuses(prev => ({ ...prev, [i]: { status: 'signed' } }));
                     successCount++;
                 } catch (err: any) {
-                    console.error(`❌ Row ${i + 1} signing error:`, err);
-                    console.error('Error message:', err.message);
-                    console.error('Error stack:', err.stack);
+                    console.error(`Row ${i + 1} error:`, err.message);
                     signedData.push({ ...row.originalRow, error: `Signing Failed: ${err.message}` });
-                    setRowStatuses(prev => ({ ...prev, [i]: { status: 'error', message: err.message } }));
+                    setErrorLog(prev => [...prev.slice(-49), { index: i + 1, message: err.message }]);
                 }
 
-                setSigningProgress(Math.round(((i + 1) / total) * 100));
-                if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+                // Batch UI updates and Yielding
+                if (i % BATCH_SIZE === 0 || i === total - 1) {
+                    const progress = Math.round(((i + 1) / total) * 100);
+                    setSigningProgress(progress);
+
+                    // Update activity log with a sliding window
+                    setActivityLog(prev => {
+                        const newLog = [...prev, `Processed row ${i + 1} / ${total}`];
+                        return newLog.slice(-10); // Keep last 10 logs
+                    });
+
+                    // Yield to main thread to allow UI to render
+                    await new Promise(r => setTimeout(r, 0));
+                }
             }
 
             console.log('\n=== SIGNING COMPLETE ===');
@@ -228,18 +244,18 @@ export function BulkIssuance() {
                 // Prepare data
                 // Map known fields + all other fields from originalRow
                 const certData: CertificateData = {
-                    certificateId: row.certId,
-                    // ...row contains certId, learner (address), course, marks, signature
+                    certificateId: row.certificateNumber,
+                    // ...row contains schema fields
                     ...row,
                     // ...row.originalRow contains all Excel columns
                     ...row.originalRow,
 
-                    // Explicitly map/overwrite with preferred values
-                    learnerName: row.originalRow['Name of Candidate'] || row.originalRow['name'] || row.learner,
-                    courseName: row.course,
-                    marks: row.marks,
-                    issueDate: row.originalRow['Issue Date'] || new Date().toISOString().split('T')[0],
-                    identityHash: row.signature
+                    // Explicitly map/overwrite with preferred values for Template
+                    learnerName: row.candidateFullName,
+                    courseName: row.qualificationName,
+                    marks: row.assessmentResult,
+                    issueDate: row.dateOfIssue,
+                    identityHash: row.signature || ''
                 };
 
                 // Render React component to DOM
@@ -452,50 +468,42 @@ export function BulkIssuance() {
                     </div>
 
                     {showStatus && (
-                        <div className="mt-6 rounded-lg border border-border/50 bg-muted/20 overflow-hidden">
-                            <div className="bg-muted/50 px-4 py-2 text-sm font-semibold border-b border-border/50">
-                                {t('signingStatus')}
-                            </div>
-                            <div className="max-h-[300px] overflow-y-auto">
-                                {parsedRows.map((row, index) => {
-                                    const statusObj = rowStatuses[index];
-                                    const status = statusObj?.status;
-                                    const errorMessage = statusObj?.message;
-
-                                    return (
-                                        <div key={index} className="flex items-center justify-between px-4 py-3 border-b border-border/50 last:border-0 hover:bg-accent/5">
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-muted-foreground w-8">#{index + 1}</span>
-                                                <span className="font-mono text-sm">{row.certId}</span>
-                                            </div>
-                                            <div className="flex items-center justify-end">
-                                                {status === 'signed' && (
-                                                    <span className="flex items-center text-green-500 text-sm">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-                                                        {t('signed')}
-                                                    </span>
-                                                )}
-                                                {status === 'error' && (
-                                                    <div className="group relative flex items-center">
-                                                        <span className="flex items-center text-red-500 text-sm cursor-help">
-                                                            <AlertCircle className="mr-1 h-4 w-4" />
-                                                            {t('failed')}
-                                                        </span>
-                                                        <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 w-64 p-2 bg-popover text-popover-foreground text-xs rounded shadow-lg border border-border">
-                                                            {errorMessage || "Unknown error"}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {!status && (
-                                                    <span className="text-muted-foreground text-sm flex items-center">
-                                                        <span className="w-2 h-2 rounded-full bg-muted-foreground/30 mr-2"></span>
-                                                        {t('pending')}
-                                                    </span>
-                                                )}
-                                            </div>
+                        <div className="mt-6 grid gap-6 md:grid-cols-2">
+                            {/* Live Log */}
+                            <div className="rounded-lg border border-border/50 bg-muted/20 overflow-hidden h-[300px] flex flex-col">
+                                <div className="bg-muted/50 px-4 py-2 text-sm font-semibold border-b border-border/50 flex justify-between">
+                                    <span>{t('signingStatus')}</span>
+                                    <span className="text-xs font-normal text-muted-foreground">Showing last 10 activities</span>
+                                </div>
+                                <div className="p-4 space-y-2 overflow-y-auto font-mono text-xs flex-1">
+                                    {activityLog.length === 0 && <p className="text-muted-foreground italic">Ready to sign...</p>}
+                                    {activityLog.map((log, i) => (
+                                        <div key={i} className="text-muted-foreground border-l-2 border-accent/50 pl-2">
+                                            {log}
                                         </div>
-                                    );
-                                })}
+                                    ))}
+                                    {isSigning && <div className="animate-pulse text-accent">Processing...</div>}
+                                </div>
+                            </div>
+
+                            {/* Error Log */}
+                            <div className="rounded-lg border border-red-900/20 bg-red-900/5 overflow-hidden h-[300px] flex flex-col">
+                                <div className="bg-red-900/10 px-4 py-2 text-sm font-semibold border-b border-red-900/10 text-red-600 flex justify-between">
+                                    <span>Errors ({errorLog.length})</span>
+                                    <span className="text-xs font-normal opacity-70">Latest 50 errors</span>
+                                </div>
+                                <div className="p-4 space-y-2 overflow-y-auto font-mono text-xs flex-1">
+                                    {errorLog.length === 0 ? (
+                                        <p className="text-muted-foreground italic">No errors so far.</p>
+                                    ) : (
+                                        errorLog.map((err, i) => (
+                                            <div key={i} className="flex gap-2 text-red-500 border-l-2 border-red-500 pl-2">
+                                                <span className="font-bold">#{err.index}:</span>
+                                                <span>{err.message}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
