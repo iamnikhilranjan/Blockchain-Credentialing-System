@@ -2,6 +2,8 @@ import ncvetImg from "@/assets/ncvet.png";
 import satyaImg from "@/assets/satya.png";
 import skillIndiaImg from "@/assets/skill-india.png";
 import candidatePhotoImg from "@/assets/candidate-photo.jpg";
+import { useEffect, useRef } from "react";
+import QRCode from "qrcode";
 
 interface SkillCertificateProps {
     data: {
@@ -22,10 +24,22 @@ interface SkillCertificateProps {
         dateOfIssue?: string;
         certificateNo?: string;
         apaarId?: string;
+        qrData?: string;
     };
 }
 
 const SkillCertificate = ({ data }: SkillCertificateProps) => {
+    const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        if (qrCanvasRef.current && data.qrData) {
+            QRCode.toCanvas(qrCanvasRef.current, data.qrData, {
+                width: 64,
+                margin: 1,
+            });
+        }
+    }, [data.qrData]);
+
     return (
         <div className="w-full flex justify-center items-center bg-gray-100 p-8">
             {/* A4 Landscape: 297mm x 210mm */}
@@ -43,8 +57,8 @@ const SkillCertificate = ({ data }: SkillCertificateProps) => {
                 {/* Simple Double Border - Inner (thinner) */}
                 <div className="absolute inset-5 border-[2px] border-blue-600"></div>
 
-                {/* Content - All content must be inside the borders */}
-                <div className="relative px-8 py-5 h-full flex flex-col" style={{ margin: "20px" }}>
+                {/* Content - All content must be inside the borders with better spacing */}
+                <div className="relative px-8 py-3 h-full flex flex-col" style={{ margin: "20px" }}>
                     {/* Header with Logos */}
                     <div className="flex justify-between items-start mb-3">
                         {/* NCVET Logo */}
@@ -255,13 +269,17 @@ const SkillCertificate = ({ data }: SkillCertificateProps) => {
                         </div>
                     </div>
 
-                    {/* Footer - Inside borders */}
-                    <div className="-mt-6 mb-4 flex justify-between items-start gap-2">
+                    {/* Footer - Inside borders with proper spacing */}
+                    <div className="mt-auto mb-2 flex justify-between items-start gap-2">
                         {/* QR Code */}
                         <div className="flex-shrink-0">
-                            <div className="w-16 h-16 border border-black flex items-center justify-center bg-white">
-                                <span className="text-[7px] text-gray-500 text-center">QR</span>
-                            </div>
+                            {data.qrData ? (
+                                <canvas ref={qrCanvasRef} className="border border-black" />
+                            ) : (
+                                <div className="w-16 h-16 border border-black flex items-center justify-center bg-white">
+                                    <span className="text-[7px] text-gray-500 text-center">QR</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Center Text */}

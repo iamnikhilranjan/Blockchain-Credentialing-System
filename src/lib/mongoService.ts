@@ -70,17 +70,31 @@ export function mergeWithSkillCertificateDefaults(mongoData: MongoCertificateDat
         apaarId: "724386800059",
     };
 
+    // Helper function to convert Unix timestamp to DD/MM/YYYY
+    const convertTimestampToDate = (timestamp?: string): string => {
+        if (!timestamp) return '';
+        const ts = parseInt(timestamp);
+        if (isNaN(ts)) return timestamp; // Return as-is if not a number
+        const date = new Date(ts * 1000); // Convert seconds to milliseconds
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
     return {
         ...defaults,
         // Map MongoDB fields to SkillCertificate fields
         candidateName: mongoData.candidateFullName || defaults.candidateName,
         certificateNo: mongoData.certificateNumber || defaults.certificateNo,
-        dateOfBirth: mongoData.dateOfBirth || defaults.dateOfBirth,
+        dateOfBirth: convertTimestampToDate(mongoData.dateOfBirth) || defaults.dateOfBirth,
         jobRole: mongoData.qualificationName || defaults.jobRole,
         nsqfLevel: mongoData.nsqfLevel ? `Level ${mongoData.nsqfLevel}` : defaults.nsqfLevel,
         grade: mongoData.assessmentResult || defaults.grade,
-        dateOfIssue: mongoData.dateOfIssue || defaults.dateOfIssue,
+        dateOfIssue: convertTimestampToDate(mongoData.dateOfIssue) || defaults.dateOfIssue,
         assessedBy: mongoData.awardingBodyName || defaults.assessedBy,
         trainingCentre: mongoData.trainingProviderName || defaults.trainingCentre,
+        // Add signature as QR data
+        qrData: mongoData.signature || mongoData.vcId || `cert:${mongoData.certificateNumber}`,
     };
 }
