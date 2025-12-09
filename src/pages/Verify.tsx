@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, Search, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { QrCode, Search, CheckCircle2, XCircle, Loader2, Upload } from "lucide-react";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import blockchainService from "@/lib/blockchain";
 import BulkVerification from "@/components/BulkVerification";
+import { OCRVerification } from "@/components/OCRVerification";
+import { ExtractedCertificateData } from "@/utils/ocrService";
 import { useTranslation } from "react-i18next";
 
 export default function Verify() {
@@ -554,7 +556,7 @@ export default function Verify() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="scan" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-8">
+                <TabsList className="grid w-full grid-cols-4 mb-8">
                   <TabsTrigger value="scan" className="gap-2">
                     <QrCode className="h-4 w-4" />
                     {t('scanQRCode')}
@@ -566,6 +568,10 @@ export default function Verify() {
                   <TabsTrigger value="bulksig" className="gap-2">
                     <Search className="h-4 w-4" />
                     {t('bulkSig')}
+                  </TabsTrigger>
+                  <TabsTrigger value="ocr" className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    OCR Upload
                   </TabsTrigger>
                 </TabsList>
 
@@ -688,6 +694,26 @@ export default function Verify() {
 
                 <TabsContent value="bulksig" className="space-y-6">
                   <BulkVerification />
+                </TabsContent>
+
+                <TabsContent value="ocr" className="space-y-6">
+                  <OCRVerification
+                    onVerify={(data: ExtractedCertificateData) => {
+                      // Map OCR extracted data to verification fields
+                      if (data.certificateNumber) {
+                        setCertificateId(data.certificateNumber);
+                      }
+                      if (data.candidateName) {
+                        setLearnerName(data.candidateName);
+                      }
+                      if (data.qualification) {
+                        setCourseName(data.qualification);
+                      }
+
+                      // Trigger verification with OCR data
+                      handleVerify(data.certificateNumber, false);
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
 

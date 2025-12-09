@@ -12,6 +12,7 @@ import Issue from "./pages/Issue";
 import Roles from "./pages/Roles";
 import Institute from "./pages/Institute";
 import DigiLocker from "./pages/DigiLocker";
+import CertificateTemplate from "./pages/CertificateTemplate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/institute" element={<Institute />} />
               <Route path="/roles" element={<Roles />} />
               <Route path="/digilocker" element={<DigiLocker />} />
+              <Route path="/certificate-template" element={<CertificateTemplate />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
