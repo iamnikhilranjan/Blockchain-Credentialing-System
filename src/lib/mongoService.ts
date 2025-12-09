@@ -23,21 +23,27 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export async function fetchMongoCertificates(walletAddress: string): Promise<MongoCertificateData[]> {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/mongo-certificates/${walletAddress}`);
+        console.log('🔍 Fetching MongoDB certificates for wallet:', walletAddress);
+        const url = `${API_BASE_URL}/api/mongo-certificates/${walletAddress}`;
+        console.log('📡 API URL:', url);
+
+        const response = await fetch(url);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('📦 MongoDB API response:', result);
 
         if (result.success) {
+            console.log(`✅ Found ${result.data.length} MongoDB certificates`);
             return result.data || [];
         }
 
         throw new Error(result.error || 'Failed to fetch MongoDB certificates');
     } catch (error) {
-        console.error('Error fetching MongoDB certificates:', error);
+        console.error('❌ Error fetching MongoDB certificates:', error);
         return [];
     }
 }

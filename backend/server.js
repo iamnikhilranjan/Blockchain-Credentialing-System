@@ -266,7 +266,9 @@ app.get('/api/mongo-certificates/:walletAddress', async (req, res) => {
         }
 
         const collection = db.collection(COLLECTION_NAME);
-        const certificates = await collection.find({ walletAddress }).toArray();
+        // Convert wallet address to lowercase for case-insensitive matching
+        const normalizedAddress = walletAddress.toLowerCase();
+        const certificates = await collection.find({ walletAddress: normalizedAddress }).toArray();
 
         console.log(`Found ${certificates.length} MongoDB certificates for wallet:`, walletAddress);
 

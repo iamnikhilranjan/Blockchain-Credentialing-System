@@ -365,25 +365,25 @@ export default function Certificates() {
                 {mongoCertificates.map((mongoCert, index) => (
                   <Card
                     key={mongoCert._id}
-                    className="bg-card/50 backdrop-blur-sm border-green-500/30 hover:border-green-500/50 transition-all duration-300 hover:shadow-card group"
+                    className="bg-card/50 backdrop-blur-sm border-border/50 hover:border-accent/50 transition-all duration-300 hover:shadow-card group"
                     style={{ animationDelay: `${(certificates.length + index) * 100}ms` }}
                   >
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <Badge
                           variant="default"
-                          className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
+                          className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/20"
                         >
                           Skill India
                         </Badge>
                         <div className="text-right">
                           <div className="text-xs text-muted-foreground">Cert No</div>
-                          <div className="font-mono text-sm font-bold text-green-500">
+                          <div className="font-mono text-sm font-bold text-accent">
                             {mongoCert.certificateNumber || 'N/A'}
                           </div>
                         </div>
                       </div>
-                      <CardTitle className="font-heading text-lg leading-tight group-hover:text-green-500 transition-colors">
+                      <CardTitle className="font-heading text-lg leading-tight group-hover:text-accent transition-colors">
                         {mongoCert.qualificationName || 'Skill Certificate'}
                       </CardTitle>
                     </CardHeader>
@@ -413,11 +413,19 @@ export default function Certificates() {
                         <Button
                           variant="neon"
                           size="sm"
-                          className="w-full gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 border-green-500/30"
+                          className="w-full gap-2"
                           onClick={() => handleDownloadMongoSkillCertificate(mongoCert)}
                         >
                           <Download className="h-4 w-4" />
                           Download Skill Certificate
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="w-full gap-2 bg-[#2B3890] hover:bg-[#1a235e] text-white border-0"
+                          onClick={() => navigate('/digilocker', { state: { certificate: mongoCert } })}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {t('addToDigilocker')}
                         </Button>
                       </div>
                     </CardContent>
