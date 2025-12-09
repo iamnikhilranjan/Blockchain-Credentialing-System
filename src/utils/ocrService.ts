@@ -29,6 +29,9 @@ class OCRService {
 
         this.worker = await Tesseract.createWorker('eng', 1, {
             logger: (m) => console.log('OCR Progress:', m),
+            workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/worker.min.js',
+            langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+            corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0/tesseract-core.wasm.js',
         });
     }
 
