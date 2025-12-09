@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => ({
     },
     // Optimize dependencies
     optimizeDeps: {
-      include: ['xlsx'],
+      include: ['xlsx', 'tesseract.js', 'pdfjs-dist'],
     },
   },
   // Define global constants
