@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, FileImage, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { ocrService, ExtractedCertificateData } from "@/utils/ocrService";
 import { useToast } from "@/hooks/use-toast";
+import { verifyCertificateOnChain, VerificationResult } from "@/utils/bulkVerifier";
+import { Badge } from "@/components/ui/badge";
 
 interface OCRVerificationProps {
     onVerify: (data: ExtractedCertificateData) => void;
@@ -18,7 +20,13 @@ export function OCRVerification({ onVerify }: OCRVerificationProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [extractedData, setExtractedData] = useState<ExtractedCertificateData | null>(null);
     const [editedData, setEditedData] = useState<ExtractedCertificateData>({});
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
     const { toast } = useToast();
+
+    // Get RPC URL and Contract Address from environment
+    const RPC_URL = import.meta.env.VITE_RPC_URL || 'https://rpc.sepolia.org';
+    const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '0x18F3040088d9933C55722474daFfd273E1d562dD';
 
     const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -112,7 +120,7 @@ export function OCRVerification({ onVerify }: OCRVerificationProps) {
         setEditedData(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleVerify = () => {
+    const handleVerify = async () => {
         if (!editedData.certificateNumber) {
             toast({
                 title: "Missing Certificate Number",
@@ -122,7 +130,78 @@ export function OCRVerification({ onVerify }: OCRVerificationProps) {
             return;
         }
 
-        onVerify(editedData);
+        if (!editedData.signature) {
+            toast({
+                title: "Missing Signature",
+                description: "Certificate signature is required for blockchain verification.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsVerifying(true);
+        setVerificationResult(null);
+
+        try {
+            toast({
+                title: "Verifying Certificate",
+                description: "Checking certificate against blockchain...",
+            });
+
+            // Prepare certificate data for verification
+            const certData = {
+                certificateNumber: editedData.certificateNumber || '',
+                candidateFullName: editedData.candidateName || '',
+                dateOfBirth: editedData.dateOfBirth || '',
+                qualificationName: editedData.qualification || '',
+                nsqfLevel: editedData.nsqfLevel ? parseInt(editedData.nsqfLevel.replace(/\D/g, '')) || 0 : 0,
+                assessmentResult: editedData.assessmentResult || '',
+                dateOfIssue: editedData.dateOfIssue || '',
+                awardingBodyName: editedData.awardingBody || '',
+                trainingProviderName: editedData.trainingProvider || '',
+                ncvetRecognitionStatus: editedData.ncvetStatus || '',
+                signature: editedData.signature,
+            };
+
+            // Verify on blockchain
+            const result = await verifyCertificateOnChain(
+                CONTRACT_ADDRESS,
+                RPC_URL,
+                certData
+            );
+
+            setVerificationResult(result);
+
+            if (result.valid) {
+                toast({
+                    title: "Certificate Verified",
+                    description: "This certificate is valid and registered on the blockchain.",
+                });
+            } else {
+                toast({
+                    title: "Verification Failed",
+                    description: result.error || "Certificate could not be verified on blockchain.",
+                    variant: "destructive",
+                });
+            }
+
+            // Call original onVerify callback
+            onVerify(editedData);
+        } catch (error: any) {
+            console.error("Verification error:", error);
+            setVerificationResult({
+                valid: false,
+                signer: null,
+                error: error.message || "An error occurred during verification"
+            });
+            toast({
+                title: "Verification Error",
+                description: error.message || "An error occurred during verification.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsVerifying(false);
+        }
     };
 
     return (
@@ -315,9 +394,65 @@ export function OCRVerification({ onVerify }: OCRVerificationProps) {
                             onClick={handleVerify}
                             className="w-full mt-6"
                             size="lg"
+                            disabled={isVerifying}
                         >
-                            Verify Certificate
+                            {isVerifying ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Verifying on Blockchain...
+                                </>
+                            ) : (
+                                "Verify Certificate on Blockchain"
+                            )}
                         </Button>
+
+                        {/* Verification Result */}
+                        {verificationResult && (
+                            <div className="mt-6">
+                                {verificationResult.valid ? (
+                                    <Alert className="border-green-500 bg-green-500/10">
+                                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                        <AlertDescription className="ml-2">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-semibold text-green-700">✅ Verified</p>
+                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                        Certificate is valid and registered on blockchain
+                                                    </p>
+                                                    {verificationResult.signer && (
+                                                        <p className="text-xs font-mono mt-2 text-muted-foreground">
+                                                            Signer: {verificationResult.signer.substring(0, 6)}...{verificationResult.signer.substring(38)}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <Badge className="bg-green-500 hover:bg-green-600">
+                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                    Valid
+                                                </Badge>
+                                            </div>
+                                        </AlertDescription>
+                                    </Alert>
+                                ) : (
+                                    <Alert variant="destructive">
+                                        <XCircle className="h-5 w-5" />
+                                        <AlertDescription className="ml-2">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-semibold">❌ Unverified</p>
+                                                    <p className="text-sm mt-1">
+                                                        {verificationResult.error || "Certificate could not be verified"}
+                                                    </p>
+                                                </div>
+                                                <Badge variant="destructive">
+                                                    <XCircle className="h-3 w-3 mr-1" />
+                                                    Invalid
+                                                </Badge>
+                                            </div>
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
