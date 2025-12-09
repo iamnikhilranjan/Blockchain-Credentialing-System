@@ -152,10 +152,21 @@ export default function Certificates() {
         format: 'a4'
       });
 
-      const imgWidth = 297; // A4 landscape width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdfWidth = 297; // A4 landscape width in mm
+      const pdfHeight = 210; // A4 landscape height in mm
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      // Calculate scaling to fit within PDF while maintaining aspect ratio
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      // If image is taller than PDF, scale it down
+      if (imgHeight > pdfHeight) {
+        const scale = pdfHeight / imgHeight;
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth * scale, pdfHeight);
+      } else {
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      }
+
       pdf.save(`skill-certificate-${certificateData.certificateNo}.pdf`);
 
       // Cleanup

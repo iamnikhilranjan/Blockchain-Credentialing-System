@@ -58,9 +58,9 @@ const SkillCertificate = ({ data }: SkillCertificateProps) => {
                 <div className="absolute inset-5 border-[2px] border-blue-600"></div>
 
                 {/* Content - All content must be inside the borders with better spacing */}
-                <div className="relative px-8 py-3 h-full flex flex-col" style={{ margin: "20px" }}>
+                <div className="relative px-6 py-2 h-full flex flex-col" style={{ margin: "20px" }}>
                     {/* Header with Logos */}
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-2">
                         {/* NCVET Logo */}
                         <div className="w-20">
                             <img src={ncvetImg} alt="NCVET" className="w-full h-auto" />
@@ -270,7 +270,7 @@ const SkillCertificate = ({ data }: SkillCertificateProps) => {
                     </div>
 
                     {/* Footer - Inside borders with proper spacing */}
-                    <div className="mt-auto mb-6 flex justify-between items-start gap-2">
+                    <div className="mt-auto mb-8 flex justify-between items-start gap-2">
                         {/* QR Code */}
                         <div className="flex-shrink-0">
                             {data.qrData ? (
