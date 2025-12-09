@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { createRoot } from "react-dom/client";
 import LearnerAnalytics from "@/components/LearnerAnalytics";
 import { useTranslation, Trans } from "react-i18next";
+import { fetchMongoCertificates, mergeWithSkillCertificateDefaults, MongoCertificateData } from "@/lib/mongoService";
+import SkillCertificate from "@/components/SkillCertificate";
 
 export default function Certificates() {
   const { t } = useTranslation();
@@ -22,6 +24,7 @@ export default function Certificates() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [certificates, setCertificates] = useState<Array<{ id: number; templateId: number; templateName?: string; instituteName?: string; learnerName?: string; issuedAt: number; validUntil?: number; revoked: boolean; dataHash?: string; txHash: string }>>([]);
+  const [mongoCertificates, setMongoCertificates] = useState<MongoCertificateData[]>([]);
 
   const handleDownloadPdf = async (cert: typeof certificates[0]) => {
     try {
@@ -103,14 +106,91 @@ export default function Certificates() {
     }
   };
 
+  const handleDownloadMongoSkillCertificate = async (mongoCert: MongoCertificateData) => {
+    try {
+      toast({ title: t('generatingPDF'), description: t('generatingPDFDesc') });
+
+      // Merge MongoDB data with defaults
+      const certificateData = mergeWithSkillCertificateDefaults(mongoCert);
+
+      // Create a temporary container
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      document.body.appendChild(container);
+
+      // Render the SkillCertificate
+      const root = createRoot(container);
+
+      await new Promise<void>((resolve) => {
+        root.render(
+          <div style={{ width: '297mm', height: '210mm' }}>
+            <SkillCertificate data={certificateData} />
+          </div>
+        );
+        // Wait for render
+        setTimeout(resolve, 1000);
+      });
+
+      // Import libraries and generate PDF
+      const [{ default: html2canvas }, { default: jsPDF }]: any = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ]);
+
+      const canvas = await html2canvas(container.firstChild as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 297; // A4 landscape width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`skill-certificate-${certificateData.certificateNo}.pdf`);
+
+      // Cleanup
+      root.unmount();
+      document.body.removeChild(container);
+
+      toast({ title: t('downloadSuccess'), description: t('downloadSuccessDesc') });
+    } catch (e: any) {
+      console.error('PDF generation error:', e);
+      toast({
+        title: t('downloadFailed'),
+        description: e?.message || t('downloadFailedDesc'),
+        variant: 'destructive'
+      });
+    }
+  };
+
   useEffect(() => {
 
     const load = async () => {
-      if (!address) { setCertificates([]); return; }
+      if (!address) {
+        setCertificates([]);
+        setMongoCertificates([]);
+        return;
+      }
       setLoading(true);
       try {
-        const rows = await blockchainService.fetchCertificatesByLearnerWallet(address);
-        setCertificates(rows.map(r => ({
+        // Fetch both blockchain and MongoDB certificates concurrently
+        const [blockchainCerts, mongoCerts] = await Promise.all([
+          blockchainService.fetchCertificatesByLearnerWallet(address),
+          fetchMongoCertificates(address)
+        ]);
+
+        // Set blockchain certificates
+        setCertificates(blockchainCerts.map(r => ({
           id: r.certId,
           templateId: r.templateId,
           templateName: r.templateName,
@@ -122,8 +202,15 @@ export default function Certificates() {
           dataHash: r.dataHash,
           txHash: r.txHash
         })));
-      } catch (_) {
+
+        // Set MongoDB certificates
+        setMongoCertificates(mongoCerts);
+
+        console.log(`Loaded ${blockchainCerts.length} blockchain certificates and ${mongoCerts.length} MongoDB certificates`);
+      } catch (error) {
+        console.error('Error loading certificates:', error);
         setCertificates([]);
+        setMongoCertificates([]);
       } finally {
         setLoading(false);
       }
@@ -176,7 +263,7 @@ export default function Certificates() {
                       <Award className="h-6 w-6 text-accent" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-accent">{certificates.length}</p>
+                      <p className="text-2xl font-bold text-accent">{certificates.length + mongoCertificates.length}</p>
                       <p className="text-sm text-muted-foreground">{t('totalCertificates')}</p>
                     </div>
                   </CardContent>
@@ -273,9 +360,72 @@ export default function Certificates() {
                     </CardContent>
                   </Card>
                 ))}
+
+                {/* MongoDB Certificates */}
+                {mongoCertificates.map((mongoCert, index) => (
+                  <Card
+                    key={mongoCert._id}
+                    className="bg-card/50 backdrop-blur-sm border-green-500/30 hover:border-green-500/50 transition-all duration-300 hover:shadow-card group"
+                    style={{ animationDelay: `${(certificates.length + index) * 100}ms` }}
+                  >
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <Badge
+                          variant="default"
+                          className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
+                        >
+                          Skill India
+                        </Badge>
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">Cert No</div>
+                          <div className="font-mono text-sm font-bold text-green-500">
+                            {mongoCert.certificateNumber || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                      <CardTitle className="font-heading text-lg leading-tight group-hover:text-green-500 transition-colors">
+                        {mongoCert.qualificationName || 'Skill Certificate'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-3 text-sm">
+                        <div className="flex items-center justify-between py-2 border-b border-border/30">
+                          <span className="text-muted-foreground">Candidate</span>
+                          <span className="font-medium text-right">
+                            {mongoCert.candidateFullName || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between py-2 border-b border-border/30">
+                          <span className="text-muted-foreground">NSQF Level</span>
+                          <span className="font-medium">{mongoCert.nsqfLevel || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-2 border-b border-border/30">
+                          <span className="text-muted-foreground">Result</span>
+                          <span className="font-medium">{mongoCert.assessmentResult || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-2">
+                          <span className="text-muted-foreground">Issue Date</span>
+                          <span className="font-medium">{mongoCert.dateOfIssue || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-border/50 space-y-2">
+                        <Button
+                          variant="neon"
+                          size="sm"
+                          className="w-full gap-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 border-green-500/30"
+                          onClick={() => handleDownloadMongoSkillCertificate(mongoCert)}
+                        >
+                          <Download className="h-4 w-4" />
+                          Download Skill Certificate
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
-              {certificates.length === 0 && !loading && (
+              {certificates.length === 0 && mongoCertificates.length === 0 && !loading && (
                 <Card className="bg-card/50 backdrop-blur-sm border-border/50">
                   <CardContent className="py-16 text-center space-y-4">
                     <Award className="h-16 w-16 text-muted-foreground mx-auto opacity-50" />

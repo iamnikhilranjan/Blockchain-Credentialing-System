@@ -2,12 +2,36 @@ import express from 'express';
 import cors from 'cors';
 import { ethers } from 'ethers';
 import dotenv from 'dotenv';
+import { MongoClient } from 'mongodb';
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const DB_NAME = 'BlockchainDB';
+const COLLECTION_NAME = 'certificates';
+
+let mongoClient;
+let db;
+
+// Connect to MongoDB
+async function connectMongoDB() {
+    try {
+        mongoClient = new MongoClient(MONGODB_URI);
+        await mongoClient.connect();
+        db = mongoClient.db(DB_NAME);
+        console.log('✅ Connected to MongoDB:', DB_NAME);
+    } catch (error) {
+        console.error('❌ MongoDB connection error:', error);
+    }
+}
+
+connectMongoDB();
+
 
 // Contract addresses (matching frontend blockchain.ts)
 const CONTRACT_ADDRESSES = {
@@ -227,6 +251,39 @@ app.get('/api/certificate/:id', async (req, res) => {
     }
 });
 
+// GET /api/mongo-certificates/:walletAddress
+app.get('/api/mongo-certificates/:walletAddress', async (req, res) => {
+    try {
+        const { walletAddress } = req.params;
+
+        console.log('MongoDB certificates request for wallet:', walletAddress);
+
+        if (!db) {
+            return res.status(500).json({
+                success: false,
+                error: 'MongoDB not connected'
+            });
+        }
+
+        const collection = db.collection(COLLECTION_NAME);
+        const certificates = await collection.find({ walletAddress }).toArray();
+
+        console.log(`Found ${certificates.length} MongoDB certificates for wallet:`, walletAddress);
+
+        return res.status(200).json({
+            success: true,
+            data: certificates
+        });
+
+    } catch (error) {
+        console.error('MongoDB certificates fetch error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'An error occurred while fetching MongoDB certificates'
+        });
+    }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({
@@ -235,6 +292,10 @@ app.get('/api/health', (req, res) => {
         blockchain: {
             rpcUrl: process.env.VITE_RPC_URL ? 'configured' : 'not configured',
             certificatesContract: CONTRACT_ADDRESSES.certificates || 'not configured'
+        },
+        mongodb: {
+            connected: !!db,
+            database: DB_NAME
         }
     });
 });
