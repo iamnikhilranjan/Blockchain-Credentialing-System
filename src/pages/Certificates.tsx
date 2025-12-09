@@ -13,8 +13,10 @@ import blockchainService from "@/lib/blockchain";
 import { useToast } from "@/hooks/use-toast";
 import { createRoot } from "react-dom/client";
 import LearnerAnalytics from "@/components/LearnerAnalytics";
+import { useTranslation, Trans } from "react-i18next";
 
 export default function Certificates() {
+  const { t } = useTranslation();
   const { address } = useBlockchain();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,7 +25,7 @@ export default function Certificates() {
 
   const handleDownloadPdf = async (cert: typeof certificates[0]) => {
     try {
-      toast({ title: "Generating PDF...", description: "Please wait while we prepare your certificate" });
+      toast({ title: t('generatingPDF'), description: t('generatingPDFDesc') });
 
       // Create a temporary container
       const container = document.createElement('div');
@@ -42,14 +44,14 @@ export default function Certificates() {
               templateId="template-1"
               certificateData={{
                 certificateId: cert.id.toString(),
-                learnerName: cert.learnerName || "Certificate Holder",
-                courseName: cert.templateName || "Course",
+                learnerName: cert.learnerName || t('certificateHolder'),
+                courseName: cert.templateName || t('defaultTemplateName'),
                 marks: "N/A",
                 issueDate: new Date(cert.issuedAt * 1000).toLocaleDateString(),
                 expiryDate: cert.validUntil && cert.validUntil > 0
                   ? new Date(cert.validUntil * 1000).toLocaleDateString()
-                  : "lifetime",
-                instituteName: cert.instituteName || "Institution",
+                  : t('lifetime'),
+                instituteName: cert.instituteName || t('defaultInstituteName'),
                 identityHash: cert.dataHash  // Pass the actual dataHash from blockchain
               }}
               includeQR={true}
@@ -90,12 +92,12 @@ export default function Certificates() {
       root.unmount();
       document.body.removeChild(container);
 
-      toast({ title: "Success!", description: "Certificate downloaded successfully" });
+      toast({ title: t('downloadSuccess'), description: t('downloadSuccessDesc') });
     } catch (e: any) {
       console.error('PDF generation error:', e);
       toast({
-        title: 'Download failed',
-        description: e?.message || 'Unable to generate PDF',
+        title: t('downloadFailed'),
+        description: e?.message || t('downloadFailedDesc'),
         variant: 'destructive'
       });
     }
@@ -140,7 +142,7 @@ export default function Certificates() {
               Learner <span className="text-accent">Dashboard</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Track your performance and manage your credentials
+              {t('myCertificatesSubtitle')}
             </p>
           </div>
 
@@ -153,7 +155,7 @@ export default function Certificates() {
                 </TabsTrigger>
                 <TabsTrigger value="certificates" className="gap-2">
                   <List className="h-4 w-4" />
-                  My Certificates
+                  {t('myCertificatesTitle')}
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -167,8 +169,7 @@ export default function Certificates() {
             </TabsContent>
 
             <TabsContent value="certificates" className="outline-none">
-              {/* Stats Bar (Simplified for List view) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                 <Card className="bg-card/50 backdrop-blur-sm border-accent/20">
                   <CardContent className="p-6 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
@@ -176,7 +177,7 @@ export default function Certificates() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-accent">{certificates.length}</p>
-                      <p className="text-sm text-muted-foreground">Total Certificates</p>
+                      <p className="text-sm text-muted-foreground">{t('totalCertificates')}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -187,7 +188,7 @@ export default function Certificates() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-accent">{certificates.filter(c => !c.revoked).length}</p>
-                      <p className="text-sm text-muted-foreground">Active Credentials</p>
+                      <p className="text-sm text-muted-foreground">{t('activeCredentials')}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -198,13 +199,12 @@ export default function Certificates() {
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-accent">100%</p>
-                      <p className="text-sm text-muted-foreground">Verified</p>
+                      <p className="text-sm text-muted-foreground">{t('verifiedStat')}</p>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Certificate Gallery */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {certificates.map((cert, index) => (
                   <Card
@@ -218,41 +218,39 @@ export default function Certificates() {
                           variant="default"
                           className="bg-accent/10 text-accent border-accent/20 hover:bg-accent/20"
                         >
-                          {cert.revoked ? 'Revoked' : 'Active'}
+                          {cert.revoked ? t('revokedStatus') : t('activeStatus')}
                         </Badge>
                         <div className="text-right">
-                          <div className="text-xs text-muted-foreground">Cert ID</div>
+                          <div className="text-xs text-muted-foreground">{t('certId')}</div>
                           <div className="font-mono text-sm font-bold text-accent">#{cert.id}</div>
                         </div>
                       </div>
                       <CardTitle className="font-heading text-lg leading-tight group-hover:text-accent transition-colors">
-                        {cert.templateName || 'Certificate'}
+                        {cert.templateName || t('defaultTemplateName')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Certificate Details - No Duplicates */}
                       <div className="space-y-3 text-sm">
                         <div className="flex items-center justify-between py-2 border-b border-border/30">
-                          <span className="text-muted-foreground">Institute</span>
-                          <span className="font-medium text-right">{cert.instituteName || 'Unknown'}</span>
+                          <span className="text-muted-foreground">{t('institute')}</span>
+                          <span className="font-medium text-right">{cert.instituteName || t('defaultInstituteName')}</span>
                         </div>
                         <div className="flex items-center justify-between py-2 border-b border-border/30">
-                          <span className="text-muted-foreground">Issue Date</span>
+                          <span className="text-muted-foreground">{t('issueDate')}</span>
                           <span className="font-medium">{new Date(cert.issuedAt * 1000).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center justify-between py-2 border-b border-border/30">
-                          <span className="text-muted-foreground">Validity</span>
-                          <span className="font-medium">{cert.validUntil && cert.validUntil > 0 ? new Date(cert.validUntil * 1000).toLocaleDateString() : 'Lifetime'}</span>
+                          <span className="text-muted-foreground">{t('validity')}</span>
+                          <span className="font-medium">{cert.validUntil && cert.validUntil > 0 ? new Date(cert.validUntil * 1000).toLocaleDateString() : t('lifetime')}</span>
                         </div>
                         <div className="flex items-center justify-between py-2">
-                          <span className="text-muted-foreground">Status</span>
+                          <span className="text-muted-foreground">{t('status')}</span>
                           <span className={`font-medium ${cert.revoked ? 'text-destructive' : 'text-accent'}`}>
-                            {cert.revoked ? 'Revoked' : 'Verified'}
+                            {cert.revoked ? t('revokedStatus') : t('verifiedStatus')}
                           </span>
                         </div>
                       </div>
 
-                      {/* Download Certificate Button */}
                       <div className="pt-4 border-t border-border/50 space-y-2">
                         <Button
                           variant="neon"
@@ -261,7 +259,7 @@ export default function Certificates() {
                           onClick={() => handleDownloadPdf(cert)}
                         >
                           <Download className="h-4 w-4" />
-                          Download Certificate
+                          {t('downloadCertificate')}
                         </Button>
                         <Button
                           size="sm"
@@ -269,7 +267,7 @@ export default function Certificates() {
                           onClick={() => navigate('/digilocker', { state: { certificate: cert } })}
                         >
                           <ExternalLink className="h-3 w-3" />
-                          Add to DigiLocker
+                          {t('addToDigilocker')}
                         </Button>
                       </div>
                     </CardContent>
@@ -277,22 +275,21 @@ export default function Certificates() {
                 ))}
               </div>
 
-              {/* Empty State */}
               {certificates.length === 0 && !loading && (
                 <Card className="bg-card/50 backdrop-blur-sm border-border/50">
                   <CardContent className="py-16 text-center space-y-4">
                     <Award className="h-16 w-16 text-muted-foreground mx-auto opacity-50" />
                     <div className="space-y-2">
-                      <h3 className="font-heading text-xl font-semibold">No Certificates Yet</h3>
+                      <h3 className="font-heading text-xl font-semibold">{t('noCertificatesTitle')}</h3>
                       <p className="text-muted-foreground">
-                        No certificates issued to this wallet yet
+                        {t('noCertificatesDesc')}
                       </p>
                     </div>
                   </CardContent>
                 </Card>
               )}
               {loading && (
-                <p className="text-center text-sm text-muted-foreground mt-6">Loading certificates...</p>
+                <p className="text-sm text-muted-foreground mt-6">{t('loadingCertificates')}</p>
               )}
             </TabsContent>
           </Tabs>

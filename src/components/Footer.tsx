@@ -1,25 +1,46 @@
 import { Shield, Github, Twitter, Linkedin } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const footerLinks = {
     product: [
-      { name: "Verify Certificate", path: "/verify" },
-      { name: "My Certificates", path: "/certificates" },
-      { name: "Issue Certificate", path: "/issue" },
+      { name: t('verifyCertificate'), path: "/verify" },
+      { name: t('myCertificates'), path: "/certificates" },
+      { name: t('issueCertificate'), path: "/issue" },
     ],
     company: [
-      { name: "About Us", path: "/about" },
-      { name: "Contact", path: "/contact" },
-      { name: "Support", path: "/support" },
+      { name: t('aboutUs'), path: "/about" },
+      { name: t('contact'), path: "/contact" },
+      { name: t('support'), path: "/support" },
+      { name: t('faq'), path: "/#faq" },
     ],
     legal: [
-      { name: "Privacy Policy", path: "/privacy" },
-      { name: "Terms of Service", path: "/terms" },
-      { name: "Security", path: "/security" },
+      { name: t('privacyPolicy'), path: "/privacy" },
+      { name: t('termsOfService'), path: "/terms" },
+      { name: t('security'), path: "/security" },
     ],
+  };
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, path: string) => {
+    if (path === "/#faq") {
+      e.preventDefault();
+      if (location.pathname === "/") {
+        // Already on home page, just scroll
+        const faqSection = document.getElementById("faq");
+        if (faqSection) {
+          faqSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } else {
+        // Navigate to home page with hash
+        navigate("/#faq");
+      }
+    }
   };
 
   const socialLinks = [
@@ -39,7 +60,7 @@ export const Footer = () => {
               <span className="font-heading text-xl font-bold">Ordinals</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Blockchain-Powered credentials that are secure, verifiable, and trusted forever.
+              {t('footerTagline')}
             </p>
             <div className="flex gap-4">
               {socialLinks.map((social) => (
@@ -57,7 +78,7 @@ export const Footer = () => {
 
           {/* Links */}
           <div>
-            <h3 className="font-semibold mb-4">Product</h3>
+            <h3 className="font-semibold mb-4">{t('product')}</h3>
             <ul className="space-y-2">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
@@ -73,12 +94,13 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Company</h3>
+            <h3 className="font-semibold mb-4">{t('company')}</h3>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.path}
+                    onClick={(e) => handleNavClick(e, link.path)}
                     className="text-sm text-muted-foreground hover:text-accent transition-colors"
                   >
                     {link.name}
@@ -89,7 +111,7 @@ export const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Legal</h3>
+            <h3 className="font-semibold mb-4">{t('legal')}</h3>
             <ul className="space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.name}>
@@ -109,10 +131,10 @@ export const Footer = () => {
         <div className="pt-8 border-t border-border/40">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {currentYear} Ordinals. All rights reserved.
+              {t('allRightsReserved', { year: currentYear })}
             </p>
             <p className="text-sm text-muted-foreground">
-              Built with blockchain technology for a trusted future
+              {t('builtWith')}
             </p>
           </div>
         </div>

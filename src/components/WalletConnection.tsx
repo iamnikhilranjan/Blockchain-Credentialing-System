@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConnectButton } from 'thirdweb/react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,19 +25,20 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
 
   // Get the active account from Thirdweb
   const activeAccount = useActiveAccount();
+  const { t } = useTranslation();
 
   const getRoleDisplay = (role: string | null) => {
     switch (role) {
       case 'admin':
-        return { label: 'Administrator', variant: 'default' as const, color: 'bg-purple-500/10 text-purple-400 border-purple-400/20' };
+        return { label: t('roleAdmin'), variant: 'default' as const, color: 'bg-purple-500/10 text-purple-400 border-purple-400/20' };
       case 'institute':
-        return { label: 'Institute', variant: 'default' as const, color: 'bg-blue-500/10 text-blue-400 border-blue-400/20' };
+        return { label: t('roleInstitute'), variant: 'default' as const, color: 'bg-blue-500/10 text-blue-400 border-blue-400/20' };
       case 'staff':
-        return { label: 'Staff Member', variant: 'default' as const, color: 'bg-green-500/10 text-green-400 border-green-400/20' };
+        return { label: t('roleStaff'), variant: 'default' as const, color: 'bg-green-500/10 text-green-400 border-green-400/20' };
       case 'learner':
-        return { label: 'Learner', variant: 'default' as const, color: 'bg-yellow-500/10 text-yellow-400 border-yellow-400/20' };
+        return { label: t('roleLearner'), variant: 'default' as const, color: 'bg-yellow-500/10 text-yellow-400 border-yellow-400/20' };
       default:
-        return { label: 'Unauthorized', variant: 'destructive' as const, color: 'bg-red-500/10 text-red-400 border-red-400/20' };
+        return { label: t('roleUnauthorized'), variant: 'destructive' as const, color: 'bg-red-500/10 text-red-400 border-red-400/20' };
     }
   };
 
@@ -76,7 +78,7 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-heading text-lg font-semibold">Wallet Status</h3>
+            <h3 className="font-heading text-lg font-semibold">{t('walletStatusTitle')}</h3>
             {isConnected && (
               <div className="scale-90">
                 <ConnectButton client={thirdwebClient} wallets={wallets} />
@@ -93,7 +95,7 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
               </div>
               <div>
                 <p className="text-muted-foreground mb-4">
-                  Connect your wallet to access blockchain features
+                  {t('walletStatusConnectDesc')}
                 </p>
                 <div className="flex justify-center">
                   <ConnectButton client={thirdwebClient} wallets={wallets} theme={customTheme} />
@@ -106,7 +108,7 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-400" />
-                  <span className="text-sm font-medium">Connected</span>
+                  <span className="text-sm font-medium">{t('connected')}</span>
                 </div>
                 <Badge variant="outline" className="font-mono text-xs">
                   {formatAddress(address!)}
@@ -122,7 +124,7 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
                     <XCircle className="h-4 w-4 text-red-400" />
                   )}
                   <span className="text-sm font-medium">
-                    {isAuthorized ? 'Authorized' : 'Unauthorized'}
+                    {isAuthorized ? t('authorized') : t('unauthorized')}
                   </span>
                 </div>
                 {userRole && (
@@ -140,10 +142,9 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
                 <div className="flex items-start gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                   <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
                   <div className="text-sm">
-                    <p className="font-medium text-yellow-400 mb-1">Limited Access</p>
+                    <p className="font-medium text-yellow-400 mb-1">{t('limitedAccess')}</p>
                     <p className="text-yellow-400/80">
-                      Your wallet is not registered for issuing or managing certificates.
-                      Contact an administrator to get access.
+                      {t('limitedAccessDesc')}
                     </p>
                   </div>
                 </div>
@@ -153,12 +154,12 @@ export function WalletConnection({ showDetails = true, className = "" }: WalletC
               {isAuthorized && userRole && (
                 <div className="p-3 bg-accent/5 border border-accent/20 rounded-lg">
                   <div className="text-sm">
-                    <p className="font-medium text-accent mb-1">Access Level: {getRoleDisplay(userRole).label}</p>
+                    <p className="font-medium text-accent mb-1">{t('accessLevel')}: {getRoleDisplay(userRole).label}</p>
                     <p className="text-muted-foreground">
-                      {userRole === 'institute' && 'You can manage staff, learners, and certificate templates.'}
-                      {userRole === 'staff' && 'You can issue and revoke certificates for registered learners.'}
-                      {userRole === 'learner' && 'You can view and share your certificates.'}
-                      {userRole === 'admin' && 'You have full administrative access to the system.'}
+                      {userRole === 'institute' && t('roleDescInstitute')}
+                      {userRole === 'staff' && t('roleDescStaff')}
+                      {userRole === 'learner' && t('roleDescLearner')}
+                      {userRole === 'admin' && t('roleDescAdmin')}
                     </p>
                   </div>
                 </div>

@@ -9,6 +9,7 @@ import { Upload, Loader2, CheckCircle2, XCircle, AlertCircle, Download } from 'l
 import { useToast } from '@/hooks/use-toast';
 import { readExcelFile, ParsedRow } from '@/utils/excelParser';
 import { verifyCertificateOnChain, VerificationResult } from '@/utils/bulkVerifier';
+import { useTranslation } from 'react-i18next';
 
 interface VerifiedRow extends ParsedRow {
     status: 'pending' | 'verifying' | 'valid' | 'invalid' | 'error';
@@ -16,6 +17,7 @@ interface VerifiedRow extends ParsedRow {
 }
 
 export default function BulkVerification() {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [data, setData] = useState<VerifiedRow[]>([]);
@@ -178,32 +180,32 @@ export default function BulkVerification() {
                 return (
                     <Badge className="bg-green-500 hover:bg-green-600">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
-                        Valid
+                        {t('authentic')}
                     </Badge>
                 );
             case 'invalid':
                 return (
                     <Badge variant="destructive">
                         <XCircle className="h-3 w-3 mr-1" />
-                        Invalid
+                        {t('invalid')}
                     </Badge>
                 );
             case 'error':
                 return (
                     <Badge variant="destructive">
                         <AlertCircle className="h-3 w-3 mr-1" />
-                        Error
+                        {t('error')}
                     </Badge>
                 );
             case 'verifying':
                 return (
                     <Badge variant="secondary">
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        Verifying
+                        {t('verifying')}
                     </Badge>
                 );
             default:
-                return <Badge variant="outline">Pending</Badge>;
+                return <Badge variant="outline">{t('pending')}</Badge>;
         }
     };
 
@@ -212,14 +214,14 @@ export default function BulkVerification() {
             {/* Configuration Section */}
             <Card className="bg-card/50 backdrop-blur-sm border-border/50">
                 <CardHeader>
-                    <CardTitle className="font-heading text-xl">Configuration</CardTitle>
-                    <CardDescription>Set up verification parameters</CardDescription>
+                    <CardTitle className="font-heading text-xl">{t('configuration')}</CardTitle>
+                    <CardDescription>{t('configurationDesc')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="contractAddress">
-                                Contract Address <span className="text-destructive">*</span>
+                                {t('contractAddress')} <span className="text-destructive">*</span>
                             </Label>
                             <Input
                                 id="contractAddress"
@@ -231,7 +233,7 @@ export default function BulkVerification() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="rpcUrl">
-                                RPC URL <span className="text-destructive">*</span>
+                                {t('rpcUrl')} <span className="text-destructive">*</span>
                             </Label>
                             <Input
                                 id="rpcUrl"
@@ -243,7 +245,7 @@ export default function BulkVerification() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="expectedIssuer">Expected Issuer (Optional)</Label>
+                        <Label htmlFor="expectedIssuer">{t('expectedIssuer')}</Label>
                         <Input
                             id="expectedIssuer"
                             placeholder="0x... (leave empty for any registered issuer)"
@@ -252,7 +254,7 @@ export default function BulkVerification() {
                             className="bg-background/50 font-mono text-sm"
                         />
                         <p className="text-xs text-muted-foreground">
-                            If provided, only signatures from this address will be considered valid
+                            {t('expectedIssuerHelp')}
                         </p>
                     </div>
                 </CardContent>
@@ -261,10 +263,9 @@ export default function BulkVerification() {
             {/* File Upload Section */}
             <Card className="bg-card/50 backdrop-blur-sm border-border/50">
                 <CardHeader>
-                    <CardTitle className="font-heading text-xl">Upload Certificates</CardTitle>
+                    <CardTitle className="font-heading text-xl">{t('uploadCertificates')}</CardTitle>
                     <CardDescription>
-                        Upload an Excel or CSV file with columns: Certificate ID, Learner Wallet Address, Course Name, Marks,
-                        Signature
+                        {t('uploadCertificatesDesc')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -280,9 +281,9 @@ export default function BulkVerification() {
                     >
                         <Upload className="h-12 w-12 mx-auto mb-4 text-accent/60" />
                         <p className="text-lg font-semibold mb-2">
-                            {file ? file.name : 'Drop signed .xlsx/.xls/.csv here'}
+                            {file ? file.name : t('dropFilesHere')}
                         </p>
-                        <p className="text-sm text-muted-foreground">or click to browse</p>
+                        <p className="text-sm text-muted-foreground">{t('clickToBrowse')}</p>
                         <input
                             id="file-upload"
                             type="file"
@@ -301,18 +302,18 @@ export default function BulkVerification() {
                                 {isVerifying ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Verifying {data.length} Certificates...
+                                        {t('verifyingCertificates', { count: data.length })}
                                     </>
                                 ) : (
-                                    'Verify All On-Chain'
+                                    t('verifyAllOnChain')
                                 )}
                             </Button>
                             <Button variant="outline" onClick={handleClear} disabled={isVerifying}>
-                                Clear
+                                {t('clear')}
                             </Button>
                             <Button variant="outline" onClick={handleExport} disabled={data.length === 0}>
                                 <Download className="h-4 w-4 mr-2" />
-                                Export
+                                {t('export')}
                             </Button>
                         </div>
                     )}
@@ -323,21 +324,21 @@ export default function BulkVerification() {
             {data.length > 0 && (
                 <Card className="bg-card/50 backdrop-blur-sm border-border/50">
                     <CardHeader>
-                        <CardTitle className="font-heading text-xl">Verification Results</CardTitle>
-                        <CardDescription>{data.length} certificates loaded</CardDescription>
+                        <CardTitle className="font-heading text-xl">{t('verificationResults')}</CardTitle>
+                        <CardDescription>{t('certificatesLoaded', { count: data.length })}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-[100px]">Cert ID</TableHead>
-                                        <TableHead>Learner</TableHead>
-                                        <TableHead>Course</TableHead>
+                                        <TableHead className="w-[100px]">{t('certificateId')}</TableHead>
+                                        <TableHead>{t('learnerName')}</TableHead>
+                                        <TableHead>{t('courseName')}</TableHead>
                                         <TableHead className="w-[80px]">Marks</TableHead>
                                         <TableHead className="w-[150px]">Signature</TableHead>
-                                        <TableHead className="w-[120px]">Status</TableHead>
-                                        <TableHead>Signer / Error</TableHead>
+                                        <TableHead className="w-[120px]">{t('status')}</TableHead>
+                                        <TableHead>{t('signerOrError')}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
