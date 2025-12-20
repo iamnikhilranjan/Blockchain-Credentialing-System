@@ -263,6 +263,38 @@ app.get('/api/certificate/:id', async (req, res) => {
     }
 });
 
+// GET /api/certificates - Get all certificates from MongoDB
+app.get('/api/certificates', async (req, res) => {
+    try {
+        console.log('Fetching all certificates from MongoDB...');
+
+        if (!db) {
+            return res.status(500).json({
+                success: false,
+                error: 'MongoDB not connected'
+            });
+        }
+
+        const collection = db.collection(COLLECTION_NAME);
+        const certificates = await collection.find({}).toArray();
+
+        console.log(`Found ${certificates.length} total certificates in MongoDB`);
+
+        return res.status(200).json({
+            success: true,
+            count: certificates.length,
+            data: certificates
+        });
+
+    } catch (error) {
+        console.error('MongoDB all certificates fetch error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'An error occurred while fetching all certificates'
+        });
+    }
+});
+
 // GET /api/mongo-certificates/:walletAddress
 app.get('/api/mongo-certificates/:walletAddress', async (req, res) => {
     try {
@@ -327,5 +359,8 @@ app.listen(PORT, () => {
     console.log('\nAvailable endpoints:');
     console.log(`  POST http://localhost:${PORT}/api/verify-certificate`);
     console.log(`  GET  http://localhost:${PORT}/api/certificate/:id`);
+    console.log(`  GET  http://localhost:${PORT}/api/certificates`);
+    console.log(`  GET  http://localhost:${PORT}/api/mongo-certificates/:walletAddress`);
+    console.log(`  POST http://localhost:${PORT}/api/verify-ocr`);
     console.log(`  GET  http://localhost:${PORT}/api/health`);
 });

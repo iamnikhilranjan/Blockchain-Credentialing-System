@@ -53,13 +53,37 @@ export async function handleOCRVerification(req, res, db, collectionName) {
         console.log('📝 Extracted text length:', text.length);
 
         // Step 2: Parse certificate data from extracted text
-        const certNoMatch = text.match(/(?:Certificate No\\.?:?\\s*|प्रमाणपत्र संख्या\\s*)([A-Z0-9\\-]+)/i);
-        const certificateNumber = certNoMatch ? certNoMatch[1].trim() : null;
+        // Try multiple patterns to extract certificate number
+        let certificateNumber = null;
 
-        const dobMatch = text.match(/(?:Date of Birth|जन्म तिथि)\\s*:?\\s*(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})/i);
+        // Pattern 1: "Certificate No" or "प्रमाणपत्र संख्या" followed by alphanumeric
+        let certNoMatch = text.match(/(?:Certificate\s+No\.?|Certificate\s+Number|प्रमाणपत्र\s+संख्या)\s*:?\s*([A-Z0-9\-\/]+)/i);
+        if (certNoMatch) {
+            certificateNumber = certNoMatch[1].trim();
+        }
+
+        // Pattern 2: "Cert No" or similar abbreviations
+        if (!certificateNumber) {
+            certNoMatch = text.match(/(?:Cert\.?\s+No\.?|Cert\.?\s+Number)\s*:?\s*([A-Z0-9\-\/]+)/i);
+            if (certNoMatch) certificateNumber = certNoMatch[1].trim();
+        }
+
+        // Pattern 3: Look for standalone numbers that might be certificate numbers (6+ digits)
+        if (!certificateNumber) {
+            certNoMatch = text.match(/\b(\d{6,})\b/);
+            if (certNoMatch) certificateNumber = certNoMatch[1].trim();
+        }
+
+        // Pattern 4: Look for patterns like "No: 123456" or "Number: 123456"
+        if (!certificateNumber) {
+            certNoMatch = text.match(/(?:No\.?|Number)\s*:?\s*([A-Z0-9\-\/]+)/i);
+            if (certNoMatch) certificateNumber = certNoMatch[1].trim();
+        }
+
+        const dobMatch = text.match(/(?:Date\s+of\s+Birth|जन्म\s+तिथि|DOB)\s*:?\s*(\d{1,2}[\\/\-]\d{1,2}[\\/\-]\d{2,4})/i);
         const dateOfBirth = dobMatch ? dobMatch[1].trim() : null;
 
-        const issueMatch = text.match(/(?:Date of Issue|जारी करने की तिथि)\\s*:?\\s*(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})/i);
+        const issueMatch = text.match(/(?:Date\s+of\s+Issue|जारी\s+करने\s+की\s+तिथि|Issue\s+Date|Issued\s+On)\s*:?\s*(\d{1,2}[\\/\-]\d{1,2}[\\/\-]\d{2,4})/i);
         const dateOfIssue = issueMatch ? issueMatch[1].trim() : null;
 
         console.log('📋 Extracted data:', {
